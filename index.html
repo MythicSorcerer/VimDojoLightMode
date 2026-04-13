@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VimDojo — Master Vim, One Keystroke at a Time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-deep:#13141f;
+  --bg-main:#1a1b2e;
+  --bg-surface:#222338;
+  --bg-elevated:#2a2b44;
+  --bg-editor:#16172b;
+  --border:#2e3050;
+  --border-bright:#3d3f6a;
+  --text-primary:#c0caf5;
+  --text-secondary:#787da0;
+  --text-muted:#565b7e;
+  --accent-green:#9ece6a;
+  --accent-green-dim:#3a5a1a;
+  --accent-blue:#7aa2f7;
+  --accent-blue-dim:#1a3a6a;
+  --accent-magenta:#bb9af7;
+  --accent-magenta-dim:#3a2a5a;
+  --accent-red:#f7768e;
+  --accent-orange:#ff9e64;
+  --accent-cyan:#7dcfff;
+  --accent-yellow:#e0af68;
+  --cursor-normal:#9ece6a;
+  --cursor-insert:#7aa2f7;
+  --cursor-visual:#bb9af7;
+  --selection:rgba(187,154,247,0.2);
+  --font-mono:'JetBrains Mono','IBM Plex Mono',monospace;
+  --font-display:'Space Grotesk',sans-serif;
+  --sidebar-w:290px;
+  --statusbar-h:28px;
+}
+html{font-size:15px;background:var(--bg-deep)}
+body{
+  font-family:var(--font-mono);
+  color:var(--text-primary);
+  background:var(--bg-deep);
+  min-height:100vh;
+  overflow:hidden;
+}
+.app{display:flex;height:100vh;position:relative}
+.sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--bg-main);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  z-index:100;
+}
+.sidebar-header{padding:20px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{font-family:var(--font-display);font-size:1.4rem;font-weight:700;color:var(--accent-green);letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+.logo .dojo{background:linear-gradient(135deg,var(--accent-green),var(--accent-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-icon{width:28px;height:28px;background:var(--accent-green);border-radius:4px;display:grid;place-items:center;color:var(--bg-deep);font-weight:700;font-size:.8rem;font-family:var(--font-mono);box-shadow:0 0 12px rgba(158,206,106,.3)}
+.progress-bar{margin-top:10px;height:3px;background:var(--bg-elevated);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent-green),var(--accent-cyan));border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.progress-text{font-size:.65rem;color:var(--text-muted);margin-top:4px}
+.sidebar-lessons{flex:1;overflow-y:auto;padding:6px 0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.phase-label{
+  font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text-muted);padding:12px 18px 4px;
+}
+.lesson-item{
+  display:flex;align-items:center;gap:10px;padding:7px 18px;cursor:pointer;
+  font-size:.72rem;color:var(--text-secondary);transition:all .15s;
+  border-left:2px solid transparent;position:relative;
+}
+.lesson-item:hover{background:var(--bg-surface);color:var(--text-primary)}
+.lesson-item.active{background:var(--bg-surface);color:var(--accent-green);border-left-color:var(--accent-green)}
+.lesson-item.completed .lesson-check{background:var(--accent-green);color:var(--bg-deep);border-color:var(--accent-green)}
+.lesson-check{
+  width:14px;height:14px;border:1.5px solid var(--border-bright);border-radius:3px;
+  display:grid;place-items:center;font-size:.5rem;flex-shrink:0;transition:all .2s;
+}
+.lesson-num{font-size:.55rem;color:var(--text-muted);min-width:16px}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-deep)}
+.topbar{display:none;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-main);align-items:center;gap:12px}
+.hamburger{background:none;border:none;color:var(--text-primary);cursor:pointer;padding:4px;display:flex;align-items:center}
+.content{flex:1;overflow-y:auto;padding:28px 36px;max-width:900px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.lesson-title{font-family:var(--font-display);font-size:1.6rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;letter-spacing:-.5px}
+.lesson-subtitle{font-size:.8rem;color:var(--text-secondary);margin-bottom:20px;line-height:1.6}
+.cmd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;margin-bottom:22px}
+.cmd-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;display:flex;align-items:center;gap:10px;transition:border-color .15s}
+.cmd-card:hover{border-color:var(--border-bright)}
+kbd{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;background:var(--bg-elevated);border:1px solid var(--border-bright);border-radius:4px;font-family:var(--font-mono);font-size:.7rem;font-weight:600;color:var(--accent-yellow);box-shadow:0 2px 0 var(--border);white-space:nowrap;flex-shrink:0}
+.cmd-desc{font-size:.68rem;color:var(--text-secondary)}
+/* Challenge tabs */
+.challenge-tabs{display:flex;gap:0;margin-bottom:0;background:var(--bg-surface);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;overflow:hidden}
+.challenge-tab{
+  padding:8px 16px;font-size:.7rem;font-weight:500;
+  color:var(--text-muted);cursor:pointer;transition:all .15s;
+  border-right:1px solid var(--border);flex:1;text-align:center;
+}
+.challenge-tab:last-child{border-right:none}
+.challenge-tab:hover{color:var(--text-secondary);background:var(--bg-elevated)}
+.challenge-tab.active{color:var(--accent-cyan);background:var(--bg-main);border-bottom:2px solid var(--accent-cyan)}
+.challenge{background:var(--bg-main);border:1px solid var(--border);border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:16px}
+.challenge.solo-challenge{border-radius:8px}
+.challenge-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-surface);border-bottom:1px solid var(--border)}
+.challenge-title{font-size:.75rem;font-weight:600;color:var(--accent-cyan);display:flex;align-items:center;gap:6px}
+.challenge-actions{display:flex;gap:8px;align-items:center}
+.keystroke-counter{font-size:.65rem;color:var(--text-muted);font-weight:500}
+.keystroke-counter span{color:var(--accent-yellow);font-weight:700}
+.btn{font-family:var(--font-mono);font-size:.68rem;padding:4px 10px;border-radius:4px;border:1px solid var(--border-bright);background:var(--bg-elevated);color:var(--text-secondary);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--border);color:var(--text-primary)}
+.btn-primary{background:var(--accent-green-dim);border-color:var(--accent-green);color:var(--accent-green)}
+.btn-primary:hover{background:var(--accent-green);color:var(--bg-deep)}
+.goal-text{padding:10px 16px;font-size:.74rem;color:var(--text-secondary);border-bottom:1px solid var(--border);line-height:1.5;display:flex;align-items:start;gap:8px}
+.goal-icon{color:var(--accent-orange);flex-shrink:0;margin-top:1px}
+.goal-preview{padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.1)}
+.goal-preview-label{font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.goal-preview-content{font-size:.74rem;color:var(--accent-green);opacity:.6;white-space:pre;line-height:1.5;max-height:100px;overflow:hidden}
+.editor-wrap{position:relative;background:var(--bg-editor)}
+.editor{display:flex;font-family:var(--font-mono);font-size:.82rem;line-height:1.65;min-height:180px;outline:none;cursor:text;position:relative}
+.line-numbers{padding:10px 0;text-align:right;user-select:none;color:var(--text-muted);font-size:.72rem;min-width:36px;background:rgba(0,0,0,.15);border-right:1px solid var(--border);flex-shrink:0}
+.line-numbers div{padding:0 8px 0 6px;line-height:1.65}
+.line-numbers div.active-ln{color:var(--accent-yellow)}
+.editor-content{flex:1;padding:10px 12px;white-space:pre;position:relative;overflow-x:auto}
+.editor-line{min-height:1.65em;position:relative}
+.cursor-block{position:relative}
+.cursor-block::after{content:'';position:absolute;left:0;top:0;width:.55em;height:1.15em;background:var(--cursor-normal);opacity:.8;animation:blink 1s step-end infinite;pointer-events:none;margin-top:2px}
+.cursor-line::after{content:'';position:absolute;left:0;top:0;width:2px;height:1.15em;background:var(--cursor-insert);animation:blink 1s step-end infinite;pointer-events:none;margin-top:2px}
+.visual-sel{background:var(--selection);border-radius:2px}
+@keyframes blink{0%,100%{opacity:.8}50%{opacity:0}}
+.statusbar{height:var(--statusbar-h);display:flex;align-items:center;font-size:.68rem;border-top:1px solid var(--border);background:var(--bg-surface)}
+.mode-indicator{padding:0 12px;height:100%;display:flex;align-items:center;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-size:.62rem;transition:background .15s,color .15s}
+.mode-normal{background:var(--accent-green);color:var(--bg-deep)}
+.mode-insert{background:var(--accent-blue);color:var(--bg-deep)}
+.mode-visual{background:var(--accent-magenta);color:var(--bg-deep)}
+.mode-search{background:var(--accent-orange);color:var(--bg-deep)}
+.statusbar-info{flex:1;padding:0 12px;color:var(--text-muted);display:flex;gap:16px}
+.keystroke-display{padding:0 12px;color:var(--accent-yellow);font-weight:500;text-align:right;min-width:80px}
+.search-bar{display:none;height:var(--statusbar-h);align-items:center;padding:0 12px;background:var(--bg-surface);border-top:1px solid var(--border);font-size:.72rem;gap:6px}
+.search-bar.visible{display:flex}
+.search-bar span{color:var(--accent-orange);font-weight:700}
+.search-input{flex:1;background:none;border:none;color:var(--text-primary);font-family:var(--font-mono);font-size:.72rem;outline:none}
+.success-overlay{position:absolute;inset:0;background:rgba(26,27,46,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50;animation:fadeIn .3s}
+.success-overlay.visible{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.success-icon{width:56px;height:56px;border-radius:50%;background:var(--accent-green-dim);border:2px solid var(--accent-green);display:grid;place-items:center;font-size:1.6rem;margin-bottom:10px;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes popIn{from{transform:scale(0)}to{transform:scale(1)}}
+.success-text{font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--accent-green);margin-bottom:4px}
+.success-sub{font-size:.7rem;color:var(--text-secondary);margin-bottom:6px}
+.success-keys{font-size:.65rem;color:var(--accent-yellow);margin-bottom:14px}
+.btn-row{display:flex;gap:8px}
+.nav-bar{display:flex;justify-content:space-between;align-items:center;margin-top:8px;margin-bottom:20px}
+.hint{font-size:.68rem;color:var(--text-muted);margin-top:6px;font-style:italic}
+.hint kbd{font-size:.58rem;height:18px;min-width:18px}
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;animation:fadeIn .2s}
+.modal-backdrop.visible{display:flex}
+.modal{background:var(--bg-main);border:1px solid var(--border-bright);border-radius:10px;width:90%;max-width:640px;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal h2{font-family:var(--font-display);font-size:1.2rem;font-weight:700;color:var(--accent-cyan);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;padding:4px 8px}
+.modal-close:hover{color:var(--text-primary)}
+.cheat-section{margin-bottom:16px}
+.cheat-section h3{font-size:.7rem;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600}
+.cheat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:3px}
+.cheat-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.68rem;color:var(--text-secondary)}
+.cheat-row kbd{font-size:.6rem;min-width:20px;height:20px}
+.confetti-container{position:fixed;inset:0;pointer-events:none;z-index:300;overflow:hidden}
+.confetti-piece{position:absolute;width:8px;height:8px;opacity:.9;animation:confettiFall 2.5s ease-in forwards}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+@media(max-width:768px){
+  .sidebar{position:fixed;inset:0;width:280px;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .topbar{display:flex}
+  .content{padding:16px 14px}
+  .cmd-grid{grid-template-columns:1fr}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;display:none}
+  .overlay.visible{display:block}
+}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-bright)}
+.editor-wrap:focus-within .editor-content{box-shadow:inset 0 0 0 1px var(--border-bright)}
+.editor-wrap.focused .statusbar{border-top-color:var(--border-bright)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="overlay" id="overlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo"><div class="logo-icon">V</div><span>Vim<span class="dojo">Dojo</span></span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-text" id="progressText">0 / 0 challenges</div>
+    </div>
+    <nav class="sidebar-lessons" id="lessonList"></nav>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg>
+      </button>
+      <span style="font-size:.78rem;color:var(--text-secondary)" id="topbarTitle">VimDojo</span>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+<div class="modal-backdrop" id="cheatModal">
+  <div class="modal">
+    <h2>Keyboard Cheat Sheet <button class="modal-close" id="cheatClose">&times;</button></h2>
+    <div class="cheat-section"><h3>Movement</h3><div class="cheat-grid">
+      <div class="cheat-row"><kbd>h</kbd>left</div><div class="cheat-row"><kbd>j</kbd>down</div>
+      <div class="cheat-row"><kbd>k</kbd>up</div><div class="cheat-row"><kbd>l</kbd>right</div>
+      <div class="cheat-row"><kbd>w</kbd>next word</div><div class="cheat-row"><kbd>b</kbd>prev word</div>
+      <div class="cheat-row"><kbd>e</kbd>end word</div><div class="cheat-row"><kbd>W</kbd>next WORD</div>
+      <div class="cheat-row"><kbd>B</kbd>prev WORD</div><div class="cheat-row"><kbd>0</kbd>line start</div>
+      <div class="cheat-row"><kbd>^</kbd>first non-blank</div><div class="cheat-row"><kbd>$</kbd>line end</div>
+      <div class="cheat-row"><kbd>gg</kbd>file start</div><div class="cheat-row"><kbd>G</kbd>file end</div>
+      <div class="cheat-row"><kbd>f</kbd>find char →</div><div class="cheat-row"><kbd>F</kbd>find char ←</div>
+      <div class="cheat-row"><kbd>t</kbd>till char →</div><div class="cheat-row"><kbd>T</kbd>till char ←</div>
+      <div class="cheat-row"><kbd>;</kbd>repeat f/t</div><div class="cheat-row"><kbd>,</kbd>reverse f/t</div>
+      <div class="cheat-row"><kbd>%</kbd>matching bracket</div>
+    </div></div>
+    <div class="cheat-section"><h3>Operators</h3><div class="cheat-grid">
+      <div class="cheat-row"><kbd>d</kbd>delete</div><div class="cheat-row"><kbd>c</kbd>change</div>
+      <div class="cheat-row"><kbd>y</kbd>yank</div><div class="cheat-row"><kbd>></kbd>indent</div>
+      <div class="cheat-row"><kbd><</kbd>unindent</div>
+    </div></div>
+    <div class="cheat-section"><h3>Text Objects (i=inner, a=around)</h3><div class="cheat-grid">
+      <div class="cheat-row"><kbd>iw</kbd>inner word</div><div class="cheat-row"><kbd>aw</kbd>a word</div>
+      <div class="cheat-row"><kbd>i"</kbd>inside ""</div><div class="cheat-row"><kbd>i'</kbd>inside ''</div>
+      <div class="cheat-row"><kbd>i(</kbd>inside ()</div><div class="cheat-row"><kbd>i{</kbd>inside {}</div>
+      <div class="cheat-row"><kbd>i[</kbd>inside []</div><div class="cheat-row"><kbd>ip</kbd>inner paragraph</div>
+    </div></div>
+    <div class="cheat-section"><h3>Editing</h3><div class="cheat-grid">
+      <div class="cheat-row"><kbd>i</kbd>insert before</div><div class="cheat-row"><kbd>I</kbd>insert at start</div>
+      <div class="cheat-row"><kbd>a</kbd>insert after</div><div class="cheat-row"><kbd>A</kbd>append at end</div>
+      <div class="cheat-row"><kbd>o</kbd>line below</div><div class="cheat-row"><kbd>O</kbd>line above</div>
+      <div class="cheat-row"><kbd>s</kbd>substitute char</div><div class="cheat-row"><kbd>S</kbd>substitute line</div>
+      <div class="cheat-row"><kbd>r</kbd>replace char</div><div class="cheat-row"><kbd>x</kbd>delete char</div>
+      <div class="cheat-row"><kbd>X</kbd>backspace</div><div class="cheat-row"><kbd>J</kbd>join lines</div>
+      <div class="cheat-row"><kbd>~</kbd>toggle case</div><div class="cheat-row"><kbd>.</kbd>repeat last</div>
+      <div class="cheat-row"><kbd>dd</kbd>delete line</div><div class="cheat-row"><kbd>cc</kbd>change line</div>
+      <div class="cheat-row"><kbd>yy</kbd>yank line</div><div class="cheat-row"><kbd>p</kbd>paste after</div>
+      <div class="cheat-row"><kbd>P</kbd>paste before</div><div class="cheat-row"><kbd>u</kbd>undo</div>
+      <div class="cheat-row"><kbd>D</kbd>delete to end</div><div class="cheat-row"><kbd>C</kbd>change to end</div>
+    </div></div>
+    <div class="cheat-section"><h3>Visual Mode</h3><div class="cheat-grid">
+      <div class="cheat-row"><kbd>v</kbd>visual char</div><div class="cheat-row"><kbd>V</kbd>visual line</div>
+      <div class="cheat-row"><kbd>d</kbd>delete sel</div><div class="cheat-row"><kbd>y</kbd>yank sel</div>
+      <div class="cheat-row"><kbd>></kbd>indent sel</div><div class="cheat-row"><kbd><</kbd>unindent sel</div>
+    </div></div>
+    <div class="cheat-section"><h3>Search</h3><div class="cheat-grid">
+      <div class="cheat-row"><kbd>/</kbd>search forward</div><div class="cheat-row"><kbd>?</kbd>search backward</div>
+      <div class="cheat-row"><kbd>n</kbd>next match</div><div class="cheat-row"><kbd>N</kbd>prev match</div>
+      <div class="cheat-row"><kbd>*</kbd>search word under cursor</div>
+    </div></div>
+  </div>
+</div>
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+// ===================== LESSONS DATA =====================
+const LESSONS = [
+  // ──── PHASE 1: SURVIVAL ────
+  { phase: 'Phase 1: Survival', id: 'intro-modes', title: 'Intro to Modes',
+    desc: 'Vim has three core modes. <b>Normal</b> mode is home base — keys are commands. <b>Insert</b> mode is for typing text. <b>Visual</b> mode is for selecting text. Press <kbd>i</kbd> to enter Insert mode and <kbd>Esc</kbd> to return to Normal.',
+    commands: [{key:'i',desc:'Enter Insert mode'},{key:'Esc',desc:'Back to Normal'},{key:'v',desc:'Visual mode'}],
+    challenges: [
+      { goal:'Enter Insert mode with "i", type "Hello Vim!" then press Escape.', start:[''], goalText:['Hello Vim!'], par:14 },
+      { goal:'Type "The quick brown fox" on line 1, press Enter, then type "jumps over the lazy dog" on line 2. Then Escape.', start:[''], goalText:['The quick brown fox','jumps over the lazy dog'], par:50 },
+    ]
+  },
+  { id: 'hjkl', title: 'Basic Movement (hjkl)',
+    desc: 'In Normal mode, <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> move the cursor left, down, up, right. Your fingers stay on the home row — much faster than arrow keys.',
+    commands: [{key:'h',desc:'Move left'},{key:'j',desc:'Move down'},{key:'k',desc:'Move up'},{key:'l',desc:'Move right'}],
+    challenges: [
+      { goal:'Navigate to the "X" and delete it with "x".', start:['The quick brown','fox juXmps over','the lazy dog'], goalText:['The quick brown','fox jumps over','the lazy dog'], par:8 },
+      { goal:'Delete all three "Z" characters scattered in the text.', start:['function Zadd(a, b) {','  return a +Z b;','Z}'], goalText:['function add(a, b) {','  return a + b;','}'], par:16 },
+      { goal:'Move to line 4 and delete the extra "!" with "x".', start:['Line one','Line two','Line three','Line four!!','Line five'], goalText:['Line one','Line two','Line three','Line four!','Line five'], par:8 },
+    ]
+  },
+  { id: 'word-movement', title: 'Word Movement (w, b, e)',
+    desc: 'Jump between words instead of character-by-character. <kbd>w</kbd> jumps to the next word start, <kbd>b</kbd> goes back, <kbd>e</kbd> goes to word end. <kbd>W</kbd>/<kbd>B</kbd>/<kbd>E</kbd> treat punctuation as part of the word.',
+    commands: [{key:'w',desc:'Next word start'},{key:'b',desc:'Prev word start'},{key:'e',desc:'Word end'},{key:'W',desc:'Next WORD'},{key:'B',desc:'Prev WORD'}],
+    challenges: [
+      { goal:'Navigate to "BAD" and delete it character by character (x, x, x).', start:['function hello() {','  return "BADworld";','}'], goalText:['function hello() {','  return "world";','}'], par:10 },
+      { goal:'Delete "BROKEN" from the middle of line 2.', start:['const items = [','  "apple", "BROKENbanana", "cherry"','];'], goalText:['const items = [','  "apple", "banana", "cherry"','];'], par:12 },
+    ]
+  },
+  { id: 'line-nav', title: 'Line & File Navigation',
+    desc: '<kbd>0</kbd> jumps to line start, <kbd>$</kbd> to line end, <kbd>^</kbd> to first non-blank character. <kbd>gg</kbd> goes to file start, <kbd>G</kbd> to file end. <kbd>{number}G</kbd> goes to a specific line.',
+    commands: [{key:'0',desc:'Line start'},{key:'$',desc:'Line end'},{key:'^',desc:'First non-blank'},{key:'gg',desc:'File start'},{key:'G',desc:'File end'}],
+    challenges: [
+      { goal:'Go to the last line and delete the trailing ";" with "x".', start:['let a = 1;','let b = 2;','let c = 3;;'], goalText:['let a = 1;','let b = 2;','let c = 3;'], par:5 },
+      { goal:'Go to line 1, jump to end of line, delete the extra ")" with "x".', start:['console.log("hello"))','console.log("world")'], goalText:['console.log("hello")','console.log("world")'], par:5 },
+      { goal:'Delete the "X" at the start of line 3 and the "Y" at the end of line 1.', start:['hello worldY','middle line','Xbottom line'], goalText:['hello world','middle line','bottom line'], par:10 },
+    ]
+  },
+  { id: 'insert-variants', title: 'Insert Mode Variants (i, a, o, O, A, I)',
+    desc: '<kbd>i</kbd> inserts before cursor, <kbd>a</kbd> after cursor, <kbd>A</kbd> at line end, <kbd>I</kbd> at line start. <kbd>o</kbd> opens a new line below, <kbd>O</kbd> above. Each enters Insert mode from a different position.',
+    commands: [{key:'i',desc:'Insert before'},{key:'a',desc:'Insert after'},{key:'A',desc:'Append at end'},{key:'I',desc:'Insert at start'},{key:'o',desc:'New line below'},{key:'O',desc:'New line above'}],
+    challenges: [
+      { goal:'Use "o" to add "Beautiful" between "Hello" and "World".', start:['Hello','World'], goalText:['Hello','Beautiful','World'], par:12 },
+      { goal:'Use "A" to append "!" to the end of each line (use A, type !, Esc, then move down and repeat).', start:['Hello','World','Vim'], goalText:['Hello!','World!','Vim!'], par:12 },
+      { goal:'Use "O" to add "#!/bin/bash" above the first line.', start:['echo "Hello"','echo "World"'], goalText:['#!/bin/bash','echo "Hello"','echo "World"'], par:14 },
+      { goal:'Use "I" to add "# " at the start of line 2 to comment it out.', start:['print("hello")','print("debug")','print("world")'], goalText:['print("hello")','# print("debug")','print("world")'], par:6 },
+    ]
+  },
+
+  // ──── PHASE 2: BASIC FLUENCY ────
+  { phase: 'Phase 2: Basic Fluency', id: 'deleting', title: 'Deleting Text (x, dd, D)',
+    desc: '<kbd>x</kbd> deletes the character under the cursor. <kbd>dd</kbd> deletes the entire line. <kbd>D</kbd> deletes from the cursor to end of line (same as <kbd>d$</kbd>).',
+    commands: [{key:'x',desc:'Delete char'},{key:'dd',desc:'Delete line'},{key:'D',desc:'Delete to end of line'},{key:'X',desc:'Backspace (delete before)'}],
+    challenges: [
+      { goal:'Delete the line "DELETE ME" using "dd".', start:['Keep this','DELETE ME','Keep this too'], goalText:['Keep this','Keep this too'], par:3 },
+      { goal:'Delete lines 2 and 3 using "dd" twice.', start:['first','REMOVE','REMOVE','last'], goalText:['first','last'], par:5 },
+      { goal:'On line 2, position cursor on the comma and use "D" to delete ", extra stuff".', start:['const name = "vim";','const items = ["a", extra stuff','const x = 1;'], goalText:['const name = "vim";','const items = ["a"','const x = 1;'], par:7 },
+    ]
+  },
+  { id: 'copy-paste', title: 'Copy & Paste (yy, p, P)',
+    desc: '<kbd>yy</kbd> yanks (copies) the current line. <kbd>p</kbd> pastes it below, <kbd>P</kbd> pastes above. Deleted text is also stored and can be pasted.',
+    commands: [{key:'yy',desc:'Yank line'},{key:'p',desc:'Paste below'},{key:'P',desc:'Paste above'},{key:'dd',desc:'Cut line (delete + register)'}],
+    challenges: [
+      { goal:'Yank line 1 with "yy", move down to line 2 with "j", paste with "p".', start:['echo Hello','echo World'], goalText:['echo Hello','echo World','echo Hello'], par:4 },
+      { goal:'Move line 3 to be line 1: go to line 3, "dd" to cut it, "gg" to go to top, "P" to paste above.', start:['second','third','first'], goalText:['first','second','third'], par:6 },
+      { goal:'Duplicate lines 1-2: yy on line 1, p to paste, go to original line 2, yy, go to new line 3, p.', start:['alpha','beta'], goalText:['alpha','alpha','beta','beta'], par:10 },
+    ]
+  },
+  { id: 'search', title: 'Search (/, n, N, *)',
+    desc: '<kbd>/</kbd> starts a forward search. Type your pattern and press Enter. <kbd>n</kbd> finds the next match, <kbd>N</kbd> the previous. <kbd>*</kbd> searches for the word under the cursor.',
+    commands: [{key:'/',desc:'Search forward'},{key:'n',desc:'Next match'},{key:'N',desc:'Prev match'},{key:'*',desc:'Search word at cursor'}],
+    challenges: [
+      { goal:'Search for "bug" with "/bug Enter", then delete it with "x" three times.', start:['function process(data) {','  let result = bugdata.trim();','  return result;','}'], goalText:['function process(data) {','  let result = data.trim();','  return result;','}'], par:8 },
+      { goal:'Search for "TODO" and delete both TODO markers using search and "dd".', start:['import fs from "fs";','// TODO: remove this','const data = fs.readFileSync("f");','// TODO: and this','export default data;'], goalText:['import fs from "fs";','const data = fs.readFileSync("f");','export default data;'], par:10 },
+    ]
+  },
+  { id: 'undo-redo', title: 'Undo & Redo (u, Ctrl-r)',
+    desc: '<kbd>u</kbd> undoes the last change. You can undo multiple times. Practice making changes and undoing them.',
+    commands: [{key:'u',desc:'Undo'},{key:'Ctrl-r',desc:'Redo'}],
+    challenges: [
+      { goal:'Delete line 2 with "dd", then undo with "u". The text should match the original.', start:['Line one','Line two','Line three'], goalText:['Line one','Line two','Line three'], par:3 },
+      { goal:'Delete all 3 lines with "dd" three times, then undo all three with "u" three times.', start:['alpha','beta','gamma'], goalText:['alpha','beta','gamma'], par:6 },
+    ]
+  },
+
+  // ──── PHASE 3: OPERATORS & MOTIONS ────
+  { phase: 'Phase 3: The Vim Grammar', id: 'operator-motion', title: 'Operators + Motions (d/c + w/$/0)',
+    desc: 'Vim\'s real power: combine an <b>operator</b> with a <b>motion</b>. <kbd>dw</kbd> = delete word, <kbd>d$</kbd> = delete to end, <kbd>cw</kbd> = change word (delete + insert). This grammar scales: learn 5 operators × 10 motions = 50 commands.',
+    commands: [{key:'dw',desc:'Delete word'},{key:'d$',desc:'Delete to line end'},{key:'cw',desc:'Change word'},{key:'c$',desc:'Change to line end'},{key:'d0',desc:'Delete to line start'}],
+    challenges: [
+      { goal:'Use "dw" to delete the word "REMOVE" (cursor on R, then dw).', start:['hello REMOVE world'], goalText:['hello world'], par:5 },
+      { goal:'Use "cw" on "old" to change it to "new" (navigate to "old", press cw, type "new", Esc).', start:['let value = old;'], goalText:['let value = new;'], par:8 },
+      { goal:'Use "d$" to delete everything after "Hello" on line 1.', start:['Hello remove all this','Keep this line'], goalText:['Hello','Keep this line'], par:5 },
+      { goal:'Use "c$" to change the end of line 1 from "broken stuff" to "fixed!".', start:['result = broken stuff','return result;'], goalText:['result = fixed!','return result;'], par:9 },
+    ]
+  },
+  { id: 'counts', title: 'Counts (2w, 3dd, 5j)',
+    desc: 'Prefix any motion or operator with a number to repeat it. <kbd>3w</kbd> moves 3 words forward. <kbd>2dd</kbd> deletes 2 lines. <kbd>5j</kbd> moves down 5 lines. This multiplies your speed.',
+    commands: [{key:'3w',desc:'Move 3 words'},{key:'2dd',desc:'Delete 2 lines'},{key:'5j',desc:'Move down 5'},{key:'3x',desc:'Delete 3 chars'}],
+    challenges: [
+      { goal:'Use "3dd" to delete lines 2-4 in one command.', start:['keep','remove1','remove2','remove3','keep'], goalText:['keep','keep'], par:3 },
+      { goal:'Use "3x" to delete "BAD" in one go (navigate to B, then 3x).', start:['hello BADworld'], goalText:['hello world'], par:5 },
+      { goal:'Use "2dw" to delete "extra words " (two words) from the middle.', start:['keep these extra words end here'], goalText:['keep these end here'], par:5 },
+    ]
+  },
+  { id: 'dot-repeat', title: 'The Dot Command (.)',
+    desc: 'The <kbd>.</kbd> key repeats your last change — the single most powerful key in Vim. Make one edit, then <kbd>.</kbd> to do it again. Design your edits to be repeatable!',
+    commands: [{key:'.',desc:'Repeat last change'}],
+    challenges: [
+      { goal:'Delete line 2 with "dd", then move to the next line and press "." to delete it too.', start:['keep','remove1','remove2','keep'], goalText:['keep','keep'], par:4 },
+      { goal:'Use "A;Esc" to add semicolons: append ";" to line 1, then j. on lines 2 and 3.', start:['let a = 1','let b = 2','let c = 3'], goalText:['let a = 1;','let b = 2;','let c = 3;'], par:8 },
+      { goal:'Delete the first word on each line: use "dw" on line 1, then "j." on lines 2 and 3.', start:['REMOVE keep this','REMOVE keep this','REMOVE keep this'], goalText:['keep this','keep this','keep this'], par:6 },
+    ]
+  },
+  { id: 'change-operator', title: 'The Change Operator (c, C, cc, s, S)',
+    desc: '<kbd>c</kbd> is like <kbd>d</kbd> but drops you into Insert mode after deleting. <kbd>cc</kbd> changes the entire line. <kbd>C</kbd> changes to end of line. <kbd>s</kbd> substitutes a character. <kbd>S</kbd> substitutes the line.',
+    commands: [{key:'cw',desc:'Change word'},{key:'cc',desc:'Change line'},{key:'C',desc:'Change to end'},{key:'s',desc:'Substitute char'},{key:'S',desc:'Substitute line'}],
+    challenges: [
+      { goal:'Use "cc" to replace line 2 entirely with "  return b + a;".', start:['function swap(a, b) {','  return a + b;','}'], goalText:['function swap(a, b) {','  return b + a;','}'], par:18 },
+      { goal:'Use "cw" to change "var" to "const" on line 1 (navigate to v in var, cw, type const, Esc).', start:['var name = "vim";','console.log(name);'], goalText:['const name = "vim";','console.log(name);'], par:9 },
+      { goal:'Use "s" to replace the "X" with "o" on line 1 (navigate to X, press s, type o, Esc).', start:['fx bar baz'], goalText:['foo bar baz'], par:5 },
+    ]
+  },
+
+  // ──── PHASE 4: TEXT OBJECTS ────
+  { phase: 'Phase 4: Text Objects', id: 'text-objects-words', title: 'Word Text Objects (diw, ciw, daw)',
+    desc: 'Text objects let you operate on structured text regardless of cursor position. <kbd>diw</kbd> deletes the inner word (cursor can be anywhere in the word). <kbd>daw</kbd> deletes the word plus surrounding space. <kbd>ciw</kbd> changes the word.',
+    commands: [{key:'diw',desc:'Delete inner word'},{key:'daw',desc:'Delete a word + space'},{key:'ciw',desc:'Change inner word'},{key:'yiw',desc:'Yank inner word'}],
+    challenges: [
+      { goal:'Place cursor anywhere on "bad" and use "ciw" to change it to "good" (ciw, type good, Esc).', start:['the bad result'], goalText:['the good result'], par:7 },
+      { goal:'Use "daw" to delete "ugly " (word + space) from the middle.', start:['the good ugly result'], goalText:['the good result'], par:5 },
+      { goal:'Change "error" to "success" using "ciw" on each line (ciw on line 1, Esc, j, then . on lines 2,3).', start:['status: error','status: error','status: error'], goalText:['status: success','status: success','status: success'], par:16 },
+    ]
+  },
+  { id: 'text-objects-quotes', title: 'Quote & Bracket Text Objects',
+    desc: '<kbd>ci"</kbd> changes inside double quotes. <kbd>ci\'</kbd> inside single quotes. <kbd>ci(</kbd> inside parentheses. <kbd>ci{</kbd> inside braces. <kbd>ci[</kbd> inside brackets. The <kbd>a</kbd> variants include the delimiters.',
+    commands: [{key:'ci"',desc:'Change inside ""'},{key:'di(',desc:'Delete inside ()'},{key:'ci{',desc:'Change inside {}'},{key:'ci[',desc:'Change inside []'},{key:'da"',desc:'Delete around ""'}],
+    challenges: [
+      { goal:'Change the string content: use "ci\\"" to change "hello" to "goodbye" (place cursor inside the quotes).', start:['let msg = "hello";'], goalText:['let msg = "goodbye";'], par:11 },
+      { goal:'Delete the function arguments: use "di(" inside the parens.', start:['console.log("debug", item, 123);'], goalText:['console.log();'], par:5 },
+      { goal:'Change the array contents: use "ci[" to replace them with "1, 2, 3".', start:['let arr = [alpha, beta, gamma];'], goalText:['let arr = [1, 2, 3];'], par:11 },
+    ]
+  },
+  { id: 'text-objects-blocks', title: 'Block & Paragraph Objects',
+    desc: '<kbd>dip</kbd> deletes the inner paragraph (continuous non-blank lines). <kbd>di{</kbd> deletes inside curly braces (great for function bodies). Combined with <kbd>c</kbd>, you can replace entire blocks instantly.',
+    commands: [{key:'dip',desc:'Delete inner paragraph'},{key:'di{',desc:'Delete inside {}'},{key:'ci{',desc:'Change inside {}'},{key:'dap',desc:'Delete paragraph + blanks'}],
+    challenges: [
+      { goal:'Delete the function body: place cursor inside the braces and use "di{".', start:['function old() {','  console.log("old");','  return null;','}'], goalText:['function old() {','}'], par:5 },
+      { goal:'Change the function body to "  return true;" using "ci{" (cursor inside braces, ci{, Enter, type "  return true;", Enter, Esc).', start:['function check() {','  let x = 1;','  let y = 2;','  return x + y;','}'], goalText:['function check() {','  return true;','}'], par:18 },
+    ]
+  },
+
+  // ──── PHASE 5: PRECISION MOVEMENT ────
+  { phase: 'Phase 5: Precision Movement', id: 'find-till', title: 'Find & Till (f, t, F, T, ;, ,)',
+    desc: '<kbd>f{char}</kbd> jumps to the next occurrence of that character on the current line. <kbd>t{char}</kbd> jumps to just before it. <kbd>;</kbd> repeats the last f/t forward, <kbd>,</kbd> repeats it backward. Combine with operators: <kbd>df,</kbd> deletes through the comma.',
+    commands: [{key:'f{c}',desc:'Find char forward'},{key:'t{c}',desc:'Till char forward'},{key:'F{c}',desc:'Find char backward'},{key:';',desc:'Repeat f/t'},{key:',',desc:'Reverse f/t'}],
+    challenges: [
+      { goal:'Use "f," to jump to the first comma, then "x" to delete it. Use ";" to find the next comma and "x" again.', start:['one, two, three'], goalText:['one two three'], par:6 },
+      { goal:'Use "dt)" to delete from cursor to just before ")". Position cursor on "extra, " first.', start:['call(extra, done)'], goalText:['call(done)'], par:6 },
+      { goal:'Use "ct:" to change everything before the colon to "name" (navigate to start of "key", then ct:, type name, Esc).', start:['  key: value'], goalText:['  name: value'], par:7 },
+    ]
+  },
+  { id: 'replace-char', title: 'Replace Character (r) & Join Lines (J)',
+    desc: '<kbd>r{char}</kbd> replaces the character under the cursor without entering Insert mode — quick single-character fixes. <kbd>J</kbd> joins the current line with the next one.',
+    commands: [{key:'r',desc:'Replace one char'},{key:'J',desc:'Join lines'},{key:'~',desc:'Toggle case'}],
+    challenges: [
+      { goal:'Use "r" to replace each "X" with the correct letter: "HXllo" → "Hello", "WXrld" → "World".', start:['HXllo','WXrld'], goalText:['Hello','World'], par:6 },
+      { goal:'Join all 3 lines into one using "J" twice.', start:['one','two','three'], goalText:['one two three'], par:2 },
+      { goal:'Use "~" to toggle the case of the first letter of each word to make them capitalized.', start:['hello world vim'], goalText:['Hello World Vim'], par:9 },
+    ]
+  },
+
+  // ──── PHASE 6: VISUAL MODE ────
+  { phase: 'Phase 6: Visual Mode', id: 'visual-char', title: 'Visual Mode (v)',
+    desc: 'Press <kbd>v</kbd> to enter character-wise Visual mode. Move to extend the selection, then apply an operator: <kbd>d</kbd> to delete, <kbd>y</kbd> to yank, <kbd>c</kbd> to change.',
+    commands: [{key:'v',desc:'Visual mode'},{key:'d',desc:'Delete selection'},{key:'y',desc:'Yank selection'},{key:'c',desc:'Change selection'}],
+    challenges: [
+      { goal:'Select "REMOVE" using v + movement, then "d" to delete it.', start:['Hello REMOVEWorld'], goalText:['Hello World'], par:9 },
+      { goal:'Select "old_value" and change it to "new_value": v to select, c to change, type new_value, Esc.', start:['let x = old_value;'], goalText:['let x = new_value;'], par:14 },
+    ]
+  },
+  { id: 'visual-line', title: 'Visual Line Mode (V)',
+    desc: '<kbd>V</kbd> enters line-wise Visual mode — selects entire lines. Move up/down to extend. Then <kbd>d</kbd> to delete, <kbd>y</kbd> to yank, <kbd>></kbd> to indent.',
+    commands: [{key:'V',desc:'Visual line mode'},{key:'d',desc:'Delete lines'},{key:'>',desc:'Indent lines'},{key:'<',desc:'Unindent lines'}],
+    challenges: [
+      { goal:'Select lines 2-3 using V, j, then delete with "d".', start:['keep','remove1','remove2','keep'], goalText:['keep','keep'], par:4 },
+      { goal:'Select lines 2-3 using V, j, then indent with ">".', start:['function test() {','const a = 1;','const b = 2;','}'], goalText:['function test() {','  const a = 1;','  const b = 2;','}'], par:4 },
+    ]
+  },
+
+  // ──── PHASE 7: ADVANCED EDITING ────
+  { phase: 'Phase 7: Advanced Editing', id: 'registers', title: 'Delete & Paste Workflow (dd, p, xp)',
+    desc: 'Deleted and yanked text goes into a register. <kbd>dd</kbd> + <kbd>p</kbd> moves a line. <kbd>xp</kbd> transposes two characters. <kbd>ddp</kbd> transposes two lines. Mastering this workflow is key.',
+    commands: [{key:'ddp',desc:'Swap lines (transpose)'},{key:'xp',desc:'Swap chars (transpose)'},{key:'P',desc:'Paste above/before'}],
+    challenges: [
+      { goal:'Swap lines 1 and 2: use "ddp" on line 1.', start:['second','first'], goalText:['first','second'], par:3 },
+      { goal:'Fix the typo "teh" → "the" using "xp" (place cursor on "e" in "teh", then xp).', start:['teh quick brown fox'], goalText:['the quick brown fox'], par:3 },
+      { goal:'Move line 4 to be line 2: go to line 4, "dd", go to line 1, "p".', start:['first','third','fourth','second'], goalText:['first','second','third','fourth'], par:5 },
+    ]
+  },
+  { id: 'indent-format', title: 'Indentation (>, <, >>)',
+    desc: '<kbd>>></kbd> indents the current line (adds 2 spaces). <kbd><<</kbd> unindents. Combine with motions: <kbd>>j</kbd> indents current + next line. Works with counts and visual selections too.',
+    commands: [{key:'>>',desc:'Indent line'},{key:'<<',desc:'Unindent line'},{key:'>j',desc:'Indent 2 lines'},{key:'<j',desc:'Unindent 2 lines'}],
+    challenges: [
+      { goal:'Indent lines 2 and 3 using ">>" on each (>> on line 2, j, then . on line 3).', start:['function() {','return 1;','return 2;','}'], goalText:['function() {','  return 1;','  return 2;','}'], par:4 },
+      { goal:'Unindent lines 2 and 3 with "<<" on each.', start:['if (true) {','    too_deep;','    too_deep;','}'], goalText:['if (true) {','  too_deep;','  too_deep;','}'], par:4 },
+    ]
+  },
+  { id: 'uppercase-lowercase', title: 'Case Manipulation (~, gU, gu)',
+    desc: '<kbd>~</kbd> toggles the case of the character under the cursor. <kbd>gUiw</kbd> uppercases a word. <kbd>guiw</kbd> lowercases a word. <kbd>gUU</kbd> uppercases the whole line.',
+    commands: [{key:'~',desc:'Toggle char case'},{key:'gUiw',desc:'Uppercase word'},{key:'guiw',desc:'Lowercase word'},{key:'gUU',desc:'Uppercase line'}],
+    challenges: [
+      { goal:'Uppercase the word "error" using "gUiw" (place cursor on it, then gUiw).', start:['throw new error("fail");'], goalText:['throw new ERROR("fail");'], par:5 },
+      { goal:'Lowercase the word "HELLO" using "guiw".', start:['console.log(HELLO);'], goalText:['console.log(hello);'], par:5 },
+    ]
+  },
+
+  // ──── PHASE 8: REAL-WORLD CHALLENGES ────
+  { phase: 'Phase 8: Real-World Challenges', id: 'fix-code-1', title: 'Fix the Bug',
+    desc: 'Combine everything you\'ve learned to fix real code. No single command is taught here — use whatever is fastest.',
+    commands: [],
+    challenges: [
+      { goal:'Fix the comparison: change "==" to "===" on line 2.', start:['function isValid(x) {','  return x == null;','}'], goalText:['function isValid(x) {','  return x === null;','}'], par:6 },
+      { goal:'The function returns the wrong variable. Change "b" to "a" on the return line.', start:['function square(a) {','  let b = a * a;','  return b;','}'], goalText:['function square(a) {','  let b = a * a;','  return a;','}'], par:5 },
+      { goal:'Remove the console.log debug line (line 3).', start:['function add(a, b) {','  const sum = a + b;','  console.log(sum);','  return sum;','}'], goalText:['function add(a, b) {','  const sum = a + b;','  return sum;','}'], par:3 },
+    ]
+  },
+  { id: 'refactor-1', title: 'Refactoring Practice',
+    desc: 'Practice common refactoring tasks: renaming variables, reordering lines, restructuring code.',
+    commands: [],
+    challenges: [
+      { goal:'Rename "tmp" to "result" on both lines where it appears (use ciw to change each).', start:['let tmp = compute();','return tmp;'], goalText:['let result = compute();','return result;'], par:14 },
+      { goal:'Swap the two function parameters from (b, a) to (a, b).', start:['function add(b, a) {','  return a + b;','}'], goalText:['function add(a, b) {','  return a + b;','}'], par:8 },
+      { goal:'Move the return statement (line 4) to be right after the declaration (line 2). Use dd on line 4, then go to line 2 and p.', start:['function init() {','  const x = setup();','  validate();','  return x;','}'], goalText:['function init() {','  const x = setup();','  return x;','  validate();','}'], par:5 },
+    ]
+  },
+  { id: 'editing-speed', title: 'Speed Editing Drills',
+    desc: 'Race through these edits as fast as possible. Try to beat the par score (fewest keystrokes).',
+    commands: [],
+    challenges: [
+      { goal:'Change all three "foo" to "bar" using ciw + dot repeat (ciw on first, type bar, Esc, then navigate and . for each).', start:['foo','foo','foo'], goalText:['bar','bar','bar'], par:10 },
+      { goal:'Delete the contents of both strings (use ci" on each).', start:['let a = "delete this";','let b = "and this";'], goalText:['let a = "";','let b = "";'], par:8 },
+      { goal:'Add "const " before each line using I + dot repeat (I, type "const ", Esc, j. for each).', start:['x = 1;','y = 2;','z = 3;'], goalText:['const x = 1;','const y = 2;','const z = 3;'], par:12 },
+      { goal:'Wrap each value in quotes: go to the number, use s"Esc, then a"Esc for each. (replace char with quote, append quote)', start:['a: 1,','b: 2,','c: 3,'], goalText:['a: "1",','b: "2",','c: "3",'], par:22 },
+    ]
+  },
+  { id: 'vim-golf', title: 'Vim Golf',
+    desc: 'The ultimate test. Achieve each edit in the fewest keystrokes possible. The par score is tight — can you match it?',
+    commands: [],
+    challenges: [
+      { goal:'Change "Hello World" to "Hello Vim" (use wciw to change second word).', start:['Hello World'], goalText:['Hello Vim'], par:7 },
+      { goal:'Reverse the order of these 3 lines. (ddp to swap, then navigate and repeat)', start:['gamma','beta','alpha'], goalText:['alpha','beta','gamma'], par:7 },
+      { goal:'Remove all blank lines. Use dd on each empty line.', start:['one','','two','','three'], goalText:['one','two','three'], par:6 },
+      { goal:'Change this single-line array to have items on separate lines. Position after [ and use "a Enter" to break each item onto its own line.', start:['const arr = [1, 2, 3];'], goalText:['const arr = [','1, 2, 3','];'], par:12 },
+    ]
+  },
+];
+
+// ===================== VIM ENGINE =====================
+class VimEngine {
+  constructor() {
+    this.reset(['']);
+  }
+  reset(textLines) {
+    this.lines = textLines.map(l=>l);
+    this.cursor = {row:0,col:0};
+    this.mode = 'normal';
+    this.register = '';
+    this.registerIsLine = false;
+    this.visualStart = null;
+    this.visualLineMode = false;
+    this.undoStack = [];
+    this.pendingKey = '';
+    this.pendingOp = '';
+    this.keyBuffer = [];
+    this.searchQuery = '';
+    this.searchActive = false;
+    this.lastChange = null;
+    this.insertRecord = null;
+    this.lastFindChar = null;
+    this.lastFindDir = 1;
+    this.lastFindTill = false;
+    this.keystrokeCount = 0;
+    this.countPrefix = 0;
+    this.onUpdate = null;
+    this.onModeChange = null;
+    this.onSearch = null;
+  }
+  loadText(textLines) {
+    const cb = {onUpdate:this.onUpdate, onModeChange:this.onModeChange, onSearch:this.onSearch};
+    this.reset(textLines);
+    this.onUpdate=cb.onUpdate; this.onModeChange=cb.onModeChange; this.onSearch=cb.onSearch;
+  }
+  saveUndo() {
+    this.undoStack.push({lines:this.lines.map(l=>l),cursor:{...this.cursor}});
+    if(this.undoStack.length>200) this.undoStack.shift();
+  }
+  clampCursor() {
+    this.cursor.row = Math.max(0, Math.min(this.cursor.row, this.lines.length-1));
+    const maxCol = this.mode==='insert' ? this.lines[this.cursor.row].length : Math.max(0, this.lines[this.cursor.row].length-1);
+    this.cursor.col = Math.max(0, Math.min(this.cursor.col, maxCol));
+  }
+  _getCount() { const c=this.countPrefix||1; this.countPrefix=0; return c; }
+  handleKey(key, e) {
+    // Ignore modifier-only keys (e.g. Shift before typing ")
+    if(key==='Shift'||key==='Control'||key==='Alt'||key==='Meta'||key==='CapsLock')return;
+    // Don't count digits that accumulate into a count prefix
+    const isCountDigit = this.mode==='normal' && ((key>='1'&&key<='9')||(key==='0'&&this.countPrefix>0));
+    if(!isCountDigit) this.keystrokeCount++;
+    if(this.mode==='search'){this._searchKey(key,e);return}
+    if(this.mode==='insert'){this._insertKey(key,e);return}
+    if(this.mode==='visual'||this.mode==='visualline'){this._visualKey(key,e);return}
+    this._normalKey(key,e);
+  }
+
+  // ── NORMAL MODE ──
+  _normalKey(key, e) {
+    // Count prefix accumulation (works before and during pending operator)
+    if((key>='1'&&key<='9')||(key==='0'&&this.countPrefix>0)){
+      this.countPrefix=this.countPrefix*10+parseInt(key);
+      this._notify();return;
+    }
+    // Pending operator + motion
+    if(this.pendingOp) {
+      const op = this.pendingOp;
+      const count = this._getCount();
+      // doubled operator (dd, cc, yy, >>, <<, gUU, guu)
+      if(key===op || (op==='>' && key==='>') || (op==='<' && key==='<')) {
+        this._execOperatorLine(op, count);
+        this.pendingOp=''; this.pendingKey=''; this._addKey(op+key); this._notify(); return;
+      }
+      // gU, gu pending second part
+      if(op==='gU' && key==='U'){ this._execOperatorLine(op, count); this.pendingOp='';this._addKey('gUU');this._notify();return; }
+      if(op==='gu' && key==='u'){ this._execOperatorLine(op, count); this.pendingOp='';this._addKey('guu');this._notify();return; }
+      // Text objects
+      if(key==='i'||key==='a') { this.pendingKey=key; this._notify(); return; }
+      if(this.pendingKey==='i'||this.pendingKey==='a') {
+        const inner = this.pendingKey==='i';
+        const obj = this._getTextObject(key, inner);
+        if(obj) {
+          this._execOperatorRange(op, obj.start, obj.end);
+          if(op==='c'&&this.insertRecord){this.insertRecord.textObj=key;this.insertRecord.inner=inner;}
+          if(op!=='c')this.lastChange={type:'op_textobj',op,textObj:key,inner};
+          this._addKey(op+this.pendingKey+key);
+        }
+        this.pendingOp=''; this.pendingKey=''; this._notify(); return;
+      }
+      // f/F/t/T motions (need a character argument)
+      if(key==='f'||key==='F'||key==='t'||key==='T'){this.pendingKey=key;this._notify();return;}
+      if(this.pendingKey==='f'||this.pendingKey==='F'||this.pendingKey==='t'||this.pendingKey==='T'){
+        if(key.length===1&&key!=='Escape'&&key!=='Shift'){
+          const dir=(this.pendingKey==='f'||this.pendingKey==='t')?1:-1;
+          const till=(this.pendingKey==='t'||this.pendingKey==='T');
+          const before={row:this.cursor.row,col:this.cursor.col};
+          this.lastFindChar=key;this.lastFindDir=dir;this.lastFindTill=till;
+          this._doFind(key,dir,till);
+          const after={row:this.cursor.row,col:this.cursor.col};
+          if(before.col!==after.col){
+            this.cursor={...before};
+            // Make inclusive: extend the far end by 1 for _execOperatorMotion's exclusive slice
+            if(dir>0)after.col++;else before.col++;
+            this._execOperatorMotion(op,before,after);
+            this._addKey(op+this.pendingKey+key);
+          }
+        }
+        this.pendingOp='';this.pendingKey='';this._notify();return;
+      }
+      // Motion (repeated count times)
+      const before = {row:this.cursor.row, col:this.cursor.col};
+      let moved=false;
+      // Vim special case: cw/cW behaves like ce/cE (don't cross to next line)
+      if(op==='c'&&(key==='w'||key==='W')){
+        for(let i=0;i<count;i++){if(key==='w')this._moveWordEnd();else this._moveWORDEnd();}
+        if(this.cursor.row!==before.row||this.cursor.col!==before.col)moved=true;
+        // Make inclusive (like $ motion)
+        if(moved)this.cursor.col++;
+      } else {
+        for(let i=0;i<count;i++){ if(this._doMotion(key))moved=true; }
+      }
+      if(moved) {
+        const after = {row:this.cursor.row, col:this.cursor.col};
+        this.cursor = {...before};
+        this._execOperatorMotion(op, before, after);
+        if(op==='c'&&this.insertRecord){
+          // cw/cW: record as text object for dot repeat (like ciw/ciW)
+          if(key==='w'||key==='W'){this.insertRecord.textObj=key;this.insertRecord.inner=true;}
+          else{this.insertRecord.motion=key;this.insertRecord.count=count;}
+        }
+        if(op!=='c')this.lastChange={type:'op_motion',op,motion:key,count};
+        this._addKey(op+key);
+      }
+      this.pendingOp=''; this.pendingKey=''; this._notify(); return;
+    }
+    // Pending g
+    if(this.pendingKey==='g') {
+      if(key==='g'){this.cursor.row=0;this.cursor.col=0;this.clampCursor();this._addKey('gg')}
+      else if(key==='U'){this.pendingOp='gU';this.pendingKey='';this._notify();return}
+      else if(key==='u'){this.pendingOp='gu';this.pendingKey='';this._notify();return}
+      this.pendingKey=''; this._notify(); return;
+    }
+    // Pending r
+    if(this.pendingKey==='r') {
+      if(key!=='Escape' && key!=='Shift' && key.length===1) {
+        this.saveUndo();
+        const line=this.lines[this.cursor.row];
+        if(this.cursor.col<line.length) {
+          this.lines[this.cursor.row]=line.slice(0,this.cursor.col)+key+line.slice(this.cursor.col+1);
+          this.lastChange={type:'replace',char:key};
+        }
+        this._addKey('r'+key);
+      }
+      this.pendingKey=''; this._notify(); return;
+    }
+
+    switch(key) {
+      case 'h': { const c=this._getCount();for(let i=0;i<c;i++)this.cursor.col--; }this._addKey('h');break;
+      case 'j': { const c=this._getCount();for(let i=0;i<c;i++)this.cursor.row++; }this._addKey('j');break;
+      case 'k': { const c=this._getCount();for(let i=0;i<c;i++)this.cursor.row--; }this._addKey('k');break;
+      case 'l': { const c=this._getCount();for(let i=0;i<c;i++)this.cursor.col++; }this._addKey('l');break;
+      case 'w': { const c=this._getCount();for(let i=0;i<c;i++)this._moveWord(1); }this._addKey('w');break;
+      case 'W': { const c=this._getCount();for(let i=0;i<c;i++)this._moveWORD(1); }this._addKey('W');break;
+      case 'b': { const c=this._getCount();for(let i=0;i<c;i++)this._moveWord(-1); }this._addKey('b');break;
+      case 'B': { const c=this._getCount();for(let i=0;i<c;i++)this._moveWORD(-1); }this._addKey('B');break;
+      case 'e': { const c=this._getCount();for(let i=0;i<c;i++)this._moveWordEnd(); }this._addKey('e');break;
+      case 'E': { const c=this._getCount();for(let i=0;i<c;i++)this._moveWORDEnd(); }this._addKey('E');break;
+      case '0': this.cursor.col=0;this._addKey('0');break;
+      case '^': this._moveFirstNonBlank();this._addKey('^');break;
+      case '$': this.cursor.col=Math.max(0,this.lines[this.cursor.row].length-1);this._addKey('$');break;
+      case 'g': this.pendingKey='g';this._notify();return;
+      case 'G': { const hc=this.countPrefix>0;const c=this._getCount();if(hc){this.cursor.row=Math.min(c-1,this.lines.length-1)}else{this.cursor.row=this.lines.length-1} }this.cursor.col=0;this._addKey('G');break;
+      case 'f': case 'F': case 't': case 'T':
+        this.pendingKey=key;this._notify();return;
+      case ';': if(this.lastFindChar)this._doFind(this.lastFindChar,this.lastFindDir,this.lastFindTill);this._addKey(';');break;
+      case ',': if(this.lastFindChar)this._doFind(this.lastFindChar,-this.lastFindDir,this.lastFindTill);this._addKey(',');break;
+      case '%': this._matchBracket();this._addKey('%');break;
+      case 'x':
+        if(this.lines[this.cursor.row].length>0){
+          const c=this._getCount();
+          this.saveUndo();
+          const ln=this.lines[this.cursor.row];
+          const delEnd=Math.min(this.cursor.col+c,ln.length);
+          this.register=ln.slice(this.cursor.col,delEnd);this.registerIsLine=false;
+          this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+ln.slice(delEnd);
+          this.lastChange={type:'x',count:c};
+        }
+        this._addKey('x');break;
+      case 'X':
+        if(this.cursor.col>0){
+          this.saveUndo();
+          const ln=this.lines[this.cursor.row];
+          this.lines[this.cursor.row]=ln.slice(0,this.cursor.col-1)+ln.slice(this.cursor.col);
+          this.cursor.col--;
+        }
+        this._addKey('X');break;
+      case 'r': this.pendingKey='r';this._notify();return;
+      case 'J':
+        if(this.cursor.row<this.lines.length-1){
+          this.saveUndo();
+          const cur=this.lines[this.cursor.row];
+          const nxt=this.lines[this.cursor.row+1].trimStart();
+          this.lines[this.cursor.row]=cur+(nxt?(' '+nxt):'');
+          this.lines.splice(this.cursor.row+1,1);
+          this.lastChange={type:'J'};
+        }
+        this._addKey('J');break;
+      case '~':
+        if(this.lines[this.cursor.row].length>0){
+          this.saveUndo();
+          const ln=this.lines[this.cursor.row];
+          const ch=ln[this.cursor.col];
+          const toggled=ch===ch.toLowerCase()?ch.toUpperCase():ch.toLowerCase();
+          this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+toggled+ln.slice(this.cursor.col+1);
+          this.cursor.col=Math.min(this.cursor.col+1,this.lines[this.cursor.row].length-1);
+          this.lastChange={type:'tilde'};
+        }
+        this._addKey('~');break;
+      case 'd': this.pendingOp='d';this._notify();return;
+      case 'c': this.pendingOp='c';this._notify();return;
+      case 'y': this.pendingOp='y';this._notify();return;
+      case '>': this.pendingOp='>';this._notify();return;
+      case '<': this.pendingOp='<';this._notify();return;
+      case 'D':
+        this.saveUndo();
+        this.register=this.lines[this.cursor.row].slice(this.cursor.col);this.registerIsLine=false;
+        this.lines[this.cursor.row]=this.lines[this.cursor.row].slice(0,this.cursor.col);
+        this.lastChange={type:'D'};
+        this._addKey('D');break;
+      case 'C':
+        this.saveUndo();
+        this.register=this.lines[this.cursor.row].slice(this.cursor.col);this.registerIsLine=false;
+        this.lines[this.cursor.row]=this.lines[this.cursor.row].slice(0,this.cursor.col);
+        this.insertRecord={cmd:'C',text:''};this.mode='insert';
+        this.lastChange={type:'C'};
+        this._addKey('C');if(this.onModeChange)this.onModeChange('insert');break;
+      case 'S':
+        this.saveUndo();
+        this.register=this.lines[this.cursor.row];this.registerIsLine=true;
+        this.lines[this.cursor.row]='';
+        this.cursor.col=0;
+        this.insertRecord={cmd:'S',text:''};this.mode='insert';
+        this._addKey('S');if(this.onModeChange)this.onModeChange('insert');break;
+      case 's':
+        if(this.lines[this.cursor.row].length>0){
+          this.saveUndo();
+          const ln=this.lines[this.cursor.row];
+          this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+ln.slice(this.cursor.col+1);
+        }
+        this.insertRecord={cmd:'s',text:''};this.mode='insert';
+        this._addKey('s');if(this.onModeChange)this.onModeChange('insert');break;
+      case 'p': this._paste(false);this._addKey('p');break;
+      case 'P': this._paste(true);this._addKey('P');break;
+      case 'u':
+        if(this.undoStack.length>0){const st=this.undoStack.pop();this.lines=st.lines;this.cursor=st.cursor;}
+        this._addKey('u');break;
+      case 'i': this.insertRecord={cmd:'i',text:''};this.mode='insert';this._addKey('i');if(this.onModeChange)this.onModeChange('insert');break;
+      case 'I': this._moveFirstNonBlank();this.insertRecord={cmd:'I',text:''};this.mode='insert';this._addKey('I');if(this.onModeChange)this.onModeChange('insert');break;
+      case 'a': this.insertRecord={cmd:'a',text:''};this.mode='insert';this.cursor.col=Math.min(this.cursor.col+1,this.lines[this.cursor.row].length);this._addKey('a');if(this.onModeChange)this.onModeChange('insert');break;
+      case 'A': this.insertRecord={cmd:'A',text:''};this.mode='insert';this.cursor.col=this.lines[this.cursor.row].length;this._addKey('A');if(this.onModeChange)this.onModeChange('insert');break;
+      case 'o': this.saveUndo();this.lines.splice(this.cursor.row+1,0,'');this.cursor.row++;this.cursor.col=0;this.insertRecord={cmd:'o',text:''};this.mode='insert';this._addKey('o');if(this.onModeChange)this.onModeChange('insert');break;
+      case 'O': this.saveUndo();this.lines.splice(this.cursor.row,0,'');this.cursor.col=0;this.insertRecord={cmd:'O',text:''};this.mode='insert';this._addKey('O');if(this.onModeChange)this.onModeChange('insert');break;
+      case 'v': this.mode='visual';this.visualStart={row:this.cursor.row,col:this.cursor.col};this.visualLineMode=false;this._addKey('v');if(this.onModeChange)this.onModeChange('visual');break;
+      case 'V': this.mode='visual';this.visualStart={row:this.cursor.row,col:this.cursor.col};this.visualLineMode=true;this._addKey('V');if(this.onModeChange)this.onModeChange('visual');break;
+      case '/': this.mode='search';this.searchQuery='';this.searchActive=true;this._addKey('/');if(this.onModeChange)this.onModeChange('search');if(this.onSearch)this.onSearch(true,'');break;
+      case 'n': if(this.searchQuery)this._searchNext(1);this._addKey('n');break;
+      case 'N': if(this.searchQuery)this._searchNext(-1);this._addKey('N');break;
+      case '*': this._searchWordUnderCursor();this._addKey('*');break;
+      case '.': this._repeatLastChange();this._addKey('.');break;
+    }
+    // Handle f/F/t/T pending
+    if(this.pendingKey==='f'||this.pendingKey==='F'||this.pendingKey==='t'||this.pendingKey==='T') {
+      if(key!==this.pendingKey) {
+        if(key.length===1 && key!=='Escape' && key!=='Shift') {
+          const dir = (this.pendingKey==='f'||this.pendingKey==='t')?1:-1;
+          const till = (this.pendingKey==='t'||this.pendingKey==='T');
+          this.lastFindChar=key; this.lastFindDir=dir; this.lastFindTill=till;
+          this._doFind(key,dir,till);
+          this._addKey(this.pendingKey+key);
+        }
+        this.pendingKey='';
+      }
+      this._notify(); return;
+    }
+    this.clampCursor();
+    this._notify();
+  }
+
+  _doMotion(key) {
+    switch(key) {
+      case 'h': this.cursor.col--;this.clampCursor();return true;
+      case 'j': this.cursor.row++;this.clampCursor();return true;
+      case 'k': this.cursor.row--;this.clampCursor();return true;
+      case 'l': this.cursor.col++;this.clampCursor();return true;
+      case 'w': this._moveWord(1);return true;
+      case 'W': this._moveWORD(1);return true;
+      case 'b': this._moveWord(-1);return true;
+      case 'B': this._moveWORD(-1);return true;
+      case 'e': this._moveWordEnd();return true;
+      case 'E': this._moveWORDEnd();return true;
+      case '0': this.cursor.col=0;return true;
+      case '^': this._moveFirstNonBlank();return true;
+      case '$': this.cursor.col=this.lines[this.cursor.row].length;return true; // inclusive for d$
+      case 'G': this.cursor.row=this.lines.length-1;this.cursor.col=this.lines[this.cursor.row].length;return true;
+      case 'g': this.pendingKey='g';return false; // will be handled on next key
+    }
+    return false;
+  }
+
+  _execOperatorMotion(op, from, to) {
+    // Ensure from < to
+    let start=from, end=to;
+    if(start.row>end.row||(start.row===end.row&&start.col>end.col)){[start,end]=[end,start]}
+    if(op==='d'||op==='c') {
+      this.saveUndo();
+      if(start.row===end.row) {
+        const ln=this.lines[start.row];
+        this.register=ln.slice(start.col,end.col);this.registerIsLine=false;
+        this.lines[start.row]=ln.slice(0,start.col)+ln.slice(end.col);
+      } else {
+        const firstPart=this.lines[start.row].slice(0,start.col);
+        const lastPart=this.lines[end.row].slice(end.col);
+        this.register='';this.registerIsLine=false;
+        if(firstPart===''&&lastPart===''){
+          this.lines.splice(start.row, end.row-start.row+1);
+        } else {
+          this.lines.splice(start.row, end.row-start.row+1, firstPart+lastPart);
+        }
+      }
+      if(this.lines.length===0) this.lines=[''];
+      this.cursor={...start};
+      this.clampCursor();
+      if(op==='c'){this.insertRecord={cmd:'c_motion',text:''};this.mode='insert';if(this.onModeChange)this.onModeChange('insert')}
+    } else if(op==='y') {
+      if(start.row===end.row) {
+        this.register=this.lines[start.row].slice(start.col,end.col);this.registerIsLine=false;
+      }
+      this.cursor={...from};
+    } else if(op==='>'||op==='<') {
+      this.saveUndo();
+      const minR=Math.min(start.row,end.row), maxR=Math.max(start.row,end.row);
+      for(let r=minR;r<=maxR;r++){
+        if(op==='>') this.lines[r]='  '+this.lines[r];
+        else this.lines[r]=this.lines[r].replace(/^ {1,2}/,'');
+      }
+    } else if(op==='gU') {
+      this.saveUndo();
+      if(start.row===end.row){
+        const ln=this.lines[start.row];
+        this.lines[start.row]=ln.slice(0,start.col)+ln.slice(start.col,end.col).toUpperCase()+ln.slice(end.col);
+      }
+    } else if(op==='gu') {
+      this.saveUndo();
+      if(start.row===end.row){
+        const ln=this.lines[start.row];
+        this.lines[start.row]=ln.slice(0,start.col)+ln.slice(start.col,end.col).toLowerCase()+ln.slice(end.col);
+      }
+    }
+  }
+
+  _execOperatorLine(op, count=1) {
+    const r=this.cursor.row;
+    const endR=Math.min(r+count-1,this.lines.length-1);
+    const n=endR-r+1;
+    if(op==='d') {
+      this.saveUndo();
+      const deleted=this.lines.splice(r,n);
+      this.register=deleted.join('\n');this.registerIsLine=true;
+      if(this.lines.length===0)this.lines=[''];
+      this.clampCursor();
+      this.lastChange={type:'dd',count:n};
+    } else if(op==='c'||op==='cc') {
+      this.saveUndo();
+      const deleted=this.lines.splice(r,n,'');
+      this.register=deleted.join('\n');this.registerIsLine=true;
+      this.cursor.col=0;
+      this.insertRecord={cmd:'cc',text:''};this.mode='insert';if(this.onModeChange)this.onModeChange('insert');
+    } else if(op==='y') {
+      this.register=this.lines.slice(r,endR+1).join('\n');this.registerIsLine=true;
+    } else if(op==='>') {
+      this.saveUndo();
+      for(let i=r;i<=endR;i++)this.lines[i]='  '+this.lines[i];
+    } else if(op==='<') {
+      this.saveUndo();
+      for(let i=r;i<=endR;i++)this.lines[i]=this.lines[i].replace(/^ {1,2}/,'');
+    } else if(op==='gU') {
+      this.saveUndo();
+      for(let i=r;i<=endR;i++)this.lines[i]=this.lines[i].toUpperCase();
+    } else if(op==='gu') {
+      this.saveUndo();
+      for(let i=r;i<=endR;i++)this.lines[i]=this.lines[i].toLowerCase();
+    }
+  }
+
+  _execOperatorRange(op, start, end) {
+    if(op==='d'||op==='c') {
+      this.saveUndo();
+      if(start.row===end.row) {
+        const ln=this.lines[start.row];
+        this.register=ln.slice(start.col,end.col);this.registerIsLine=false;
+        this.lines[start.row]=ln.slice(0,start.col)+ln.slice(end.col);
+      } else {
+        const first=this.lines[start.row].slice(0,start.col);
+        const last=this.lines[end.row].slice(end.col);
+        this.register='';this.registerIsLine=false;
+        if(first===''&&last===''){
+          this.lines.splice(start.row,end.row-start.row+1);
+        } else {
+          this.lines.splice(start.row,end.row-start.row+1,first+last);
+        }
+      }
+      if(this.lines.length===0)this.lines=[''];
+      this.cursor={row:start.row,col:start.col};
+      this.clampCursor();
+      if(op==='c'){this.insertRecord={cmd:'c_motion',text:''};this.mode='insert';if(this.onModeChange)this.onModeChange('insert')}
+    } else if(op==='y') {
+      if(start.row===end.row) this.register=this.lines[start.row].slice(start.col,end.col);
+      this.registerIsLine=false;
+    } else if(op==='>'||op==='<') {
+      this.saveUndo();
+      for(let r=start.row;r<=end.row;r++){
+        if(op==='>')this.lines[r]='  '+this.lines[r];
+        else this.lines[r]=this.lines[r].replace(/^ {1,2}/,'');
+      }
+    } else if(op==='gU') {
+      this.saveUndo();
+      if(start.row===end.row){
+        const ln=this.lines[start.row];
+        this.lines[start.row]=ln.slice(0,start.col)+ln.slice(start.col,end.col).toUpperCase()+ln.slice(end.col);
+      }
+    } else if(op==='gu') {
+      this.saveUndo();
+      if(start.row===end.row){
+        const ln=this.lines[start.row];
+        this.lines[start.row]=ln.slice(0,start.col)+ln.slice(start.col,end.col).toLowerCase()+ln.slice(end.col);
+      }
+    }
+  }
+
+  _getTextObject(key, inner) {
+    const row=this.cursor.row, col=this.cursor.col;
+    const line=this.lines[row];
+    // Word
+    if(key==='w') {
+      let s=col, e=col;
+      while(s>0 && !/\s/.test(line[s-1])) s--;
+      while(e<line.length-1 && !/\s/.test(line[e+1])) e++;
+      if(!inner) { while(e<line.length-1 && /\s/.test(line[e+1])) e++; }
+      return {start:{row,col:s},end:{row,col:e+1}};
+    }
+    // Paired delimiters
+    const pairs={'(':')',')':'(','[':']',']':'[','{':'}','}':'{','"':'"',"'":"'",'<':'>','>':'<','`':'`'};
+    if(pairs[key]) {
+      let open=key, close=pairs[key];
+      if(key===')'||key===']'||key==='}'||key==='>'){open=pairs[key];close=key;}
+      if(key==='"'||key==="'"||key==='`'){open=close=key;}
+      // Find opening
+      let openPos=-1, closePos=-1;
+      if(open===close) {
+        // Quote-like: find surrounding pair on same line
+        let first=-1, second=-1;
+        for(let i=0;i<line.length;i++){
+          if(line[i]===open){
+            if(first===-1) first=i;
+            else if(i>=col && first<col){second=i;break;}
+            else if(second===-1) {
+              if(first<col) {first=i; second=-1;} // reset
+              else {second=i;break;}
+            }
+          }
+        }
+        if(first===-1||second===-1){
+          // try finding any surrounding pair
+          first=-1;second=-1;
+          for(let i=0;i<line.length;i++){
+            if(line[i]===open){
+              if(first===-1)first=i;
+              else{second=i;if(first<=col&&second>=col)break;first=i;second=-1;}
+            }
+          }
+        }
+        if(first!==-1&&second!==-1&&first<=col&&second>=col){
+          openPos=first;closePos=second;
+        } else if(first!==-1&&second!==-1) {
+          openPos=first;closePos=second;
+        }
+      } else {
+        // Bracket-like: find matching pair
+        let depth=0;
+        // search backward for open
+        for(let i=col;i>=0;i--){
+          if(line[i]===close)depth++;
+          if(line[i]===open){if(depth===0){openPos=i;break;}depth--;}
+        }
+        // If not found backward, search forward for open (like Vim does)
+        if(openPos===-1){
+          for(let i=col+1;i<line.length;i++){
+            if(line[i]===open){openPos=i;break;}
+          }
+        }
+        // search forward for close from after openPos
+        depth=0;
+        const searchStart=openPos!==-1?Math.max(col,openPos):col;
+        for(let i=searchStart;i<line.length;i++){
+          if(line[i]===open && i!==openPos)depth++;
+          if(line[i]===close){if(depth===0){closePos=i;break;}depth--;}
+        }
+      }
+      if(openPos!==-1 && closePos!==-1) {
+        if(inner) return {start:{row,col:openPos+1},end:{row,col:closePos}};
+        return {start:{row,col:openPos},end:{row,col:closePos+1}};
+      }
+      // Multi-line for braces
+      if(open==='{'||open==='('||open==='[') {
+        return this._findMultiLinePair(open,close,inner);
+      }
+    }
+    // Paragraph
+    if(key==='p') {
+      let sr=row, er=row;
+      while(sr>0 && this.lines[sr-1].trim()!=='') sr--;
+      while(er<this.lines.length-1 && this.lines[er+1].trim()!=='') er++;
+      if(!inner) { while(er<this.lines.length-1 && this.lines[er+1].trim()==='') er++; }
+      return {start:{row:sr,col:0},end:{row:er,col:this.lines[er].length}};
+    }
+    return null;
+  }
+
+  _findMultiLinePair(open,close,inner) {
+    // Search backwards for opening
+    let depth=0, openRow=-1, openCol=-1;
+    for(let r=this.cursor.row;r>=0;r--) {
+      const line=this.lines[r];
+      const startC = r===this.cursor.row ? this.cursor.col : line.length-1;
+      for(let c=startC;c>=0;c--) {
+        if(line[c]===close && !(r===this.cursor.row && c===this.cursor.col)) depth++;
+        if(line[c]===open){if(depth===0){openRow=r;openCol=c;break;}depth--;}
+      }
+      if(openRow!==-1)break;
+    }
+    // If not found backward, search forward for opening
+    if(openRow===-1){
+      for(let r=this.cursor.row;r<this.lines.length;r++){
+        const line=this.lines[r];
+        const startC=r===this.cursor.row?this.cursor.col+1:0;
+        for(let c=startC;c<line.length;c++){
+          if(line[c]===open){openRow=r;openCol=c;break;}
+        }
+        if(openRow!==-1)break;
+      }
+    }
+    if(openRow===-1) return null;
+    // Search forwards for closing
+    depth=0;let closeRow=-1,closeCol=-1;
+    for(let r=openRow;r<this.lines.length;r++){
+      const line=this.lines[r];
+      const startC=r===openRow?openCol+1:0;
+      for(let c=startC;c<line.length;c++){
+        if(line[c]===open)depth++;
+        if(line[c]===close){if(depth===0){closeRow=r;closeCol=c;break;}depth--;}
+      }
+      if(closeRow!==-1)break;
+    }
+    if(closeRow===-1) return null;
+    if(inner) {
+      // For multiline inner, delete contents between braces
+      let sr=openRow, sc=openCol+1;
+      // If there's nothing after the open brace on the same line, start from next line
+      if(this.lines[sr].slice(sc).trim()===''){sr++;sc=0;}
+      let er=closeRow, ec=closeCol;
+      // If nothing before close brace, end at prev line end
+      if(this.lines[er].slice(0,ec).trim()===''){er--;ec=this.lines[er]?this.lines[er].length:0;}
+      return {start:{row:sr,col:sc},end:{row:er,col:ec}};
+    }
+    return {start:{row:openRow,col:openCol},end:{row:closeRow,col:closeCol+1}};
+  }
+
+  _paste(before) {
+    if(!this.register&&this.register!=='') return;
+    this.saveUndo();
+    if(this.registerIsLine) {
+      const regLines=this.register.split('\n');
+      if(before) {
+        this.lines.splice(this.cursor.row,0,...regLines);
+      } else {
+        this.lines.splice(this.cursor.row+1,0,...regLines);
+        this.cursor.row++;
+      }
+      this.cursor.col=0;
+    } else {
+      const ln=this.lines[this.cursor.row];
+      const pos=before?this.cursor.col:this.cursor.col+1;
+      this.lines[this.cursor.row]=ln.slice(0,pos)+this.register+ln.slice(pos);
+      this.cursor.col=pos+this.register.length-1;
+    }
+  }
+
+  _repeatLastChange() {
+    if(!this.lastChange) return;
+    const lc=this.lastChange;
+    switch(lc.type){
+      case 'dd': {
+        this.saveUndo();
+        const n=Math.min(lc.count||1,this.lines.length-this.cursor.row);
+        const del=this.lines.splice(this.cursor.row,n);
+        this.register=del.join('\n');this.registerIsLine=true;
+        if(this.lines.length===0)this.lines=[''];
+        this.clampCursor();break;
+      }
+      case 'x': {
+        if(this.lines[this.cursor.row].length>0){
+          this.saveUndo();const ln=this.lines[this.cursor.row];
+          const c=lc.count||1;const end=Math.min(this.cursor.col+c,ln.length);
+          this.register=ln.slice(this.cursor.col,end);this.registerIsLine=false;
+          this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+ln.slice(end);
+        }break;
+      }
+      case 'J': {
+        if(this.cursor.row<this.lines.length-1){
+          this.saveUndo();const cur=this.lines[this.cursor.row];
+          const nxt=this.lines[this.cursor.row+1].trimStart();
+          this.lines[this.cursor.row]=cur+(nxt?(' '+nxt):'');
+          this.lines.splice(this.cursor.row+1,1);
+        }break;
+      }
+      case 'tilde': {
+        if(this.lines[this.cursor.row].length>0){
+          this.saveUndo();const ln=this.lines[this.cursor.row];
+          const ch=ln[this.cursor.col];
+          const t=ch===ch.toLowerCase()?ch.toUpperCase():ch.toLowerCase();
+          this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+t+ln.slice(this.cursor.col+1);
+          this.cursor.col=Math.min(this.cursor.col+1,this.lines[this.cursor.row].length-1);
+        }break;
+      }
+      case 'D': {
+        this.saveUndo();
+        this.register=this.lines[this.cursor.row].slice(this.cursor.col);this.registerIsLine=false;
+        this.lines[this.cursor.row]=this.lines[this.cursor.row].slice(0,this.cursor.col);
+        break;
+      }
+      case 'C': {
+        this.saveUndo();
+        this.lines[this.cursor.row]=this.lines[this.cursor.row].slice(0,this.cursor.col);
+        if(lc.text){
+          const ln=this.lines[this.cursor.row];
+          this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+lc.text+ln.slice(this.cursor.col);
+          this.cursor.col+=lc.text.length;
+        }
+        this.clampCursor();break;
+      }
+      case 'replace': {
+        this.saveUndo();const line=this.lines[this.cursor.row];
+        if(this.cursor.col<line.length){
+          this.lines[this.cursor.row]=line.slice(0,this.cursor.col)+lc.char+line.slice(this.cursor.col+1);
+        }break;
+      }
+      case 'op_motion': {
+        this.saveUndo();
+        const before={row:this.cursor.row,col:this.cursor.col};
+        const c=lc.count||1;let moved=false;
+        for(let i=0;i<c;i++){if(this._doMotion(lc.motion))moved=true;}
+        if(moved){
+          const after={row:this.cursor.row,col:this.cursor.col};
+          this.cursor={...before};
+          this._execOperatorMotion(lc.op,before,after);
+        }break;
+      }
+      case 'op_textobj': {
+        this.saveUndo();
+        const obj=this._getTextObject(lc.textObj,lc.inner);
+        if(obj)this._execOperatorRange(lc.op,obj.start,obj.end);
+        break;
+      }
+      case 'insert': {
+        this.saveUndo();
+        switch(lc.cmd){
+          case 'i':break;
+          case 'I':this._moveFirstNonBlank();break;
+          case 'a':this.cursor.col=Math.min(this.cursor.col+1,this.lines[this.cursor.row].length);break;
+          case 'A':this.cursor.col=this.lines[this.cursor.row].length;break;
+          case 'o':this.lines.splice(this.cursor.row+1,0,'');this.cursor.row++;this.cursor.col=0;break;
+          case 'O':this.lines.splice(this.cursor.row,0,'');this.cursor.col=0;break;
+          case 's':{const ln=this.lines[this.cursor.row];if(ln.length>0)this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+ln.slice(this.cursor.col+1);break;}
+          case 'S':this.lines[this.cursor.row]='';this.cursor.col=0;break;
+          case 'C':this.lines[this.cursor.row]=this.lines[this.cursor.row].slice(0,this.cursor.col);break;
+          case 'cc':this.lines[this.cursor.row]='';this.cursor.col=0;break;
+          case 'c_motion': {
+            if(lc.textObj){
+              const obj=this._getTextObject(lc.textObj,lc.inner);
+              if(obj)this._execOperatorRange('d',obj.start,obj.end);
+            } else if(lc.motion){
+              const before={row:this.cursor.row,col:this.cursor.col};
+              const c=lc.count||1;let moved=false;
+              for(let i=0;i<c;i++){if(this._doMotion(lc.motion))moved=true;}
+              if(moved){
+                const after={row:this.cursor.row,col:this.cursor.col};
+                this.cursor={...before};
+                this._execOperatorMotion('d',before,after);
+              }
+            }
+            break;
+          }
+        }
+        if(lc.text){
+          const ln=this.lines[this.cursor.row];
+          this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+lc.text+ln.slice(this.cursor.col);
+          this.cursor.col+=lc.text.length-1;
+        }
+        this.clampCursor();break;
+      }
+    }
+  }
+
+  // ── INSERT MODE ──
+  _insertKey(key, e) {
+    if(key==='Escape'){
+      if(this.insertRecord){this.lastChange={type:'insert',...this.insertRecord};this.insertRecord=null}
+      this.mode='normal';this.cursor.col=Math.max(0,this.cursor.col-1);this.clampCursor();
+      this._addKey('Esc');if(this.onModeChange)this.onModeChange('normal');this._notify();return;
+    }
+    if(key==='Enter'){
+      this.saveUndo();
+      const ln=this.lines[this.cursor.row];
+      this.lines[this.cursor.row]=ln.slice(0,this.cursor.col);
+      this.lines.splice(this.cursor.row+1,0,ln.slice(this.cursor.col));
+      this.cursor.row++;this.cursor.col=0;
+      this._addKey('CR');this._notify();return;
+    }
+    if(key==='Backspace'){
+      if(this.cursor.col>0){
+        this.saveUndo();
+        const ln=this.lines[this.cursor.row];
+        this.lines[this.cursor.row]=ln.slice(0,this.cursor.col-1)+ln.slice(this.cursor.col);
+        this.cursor.col--;
+      } else if(this.cursor.row>0){
+        this.saveUndo();
+        const prev=this.lines[this.cursor.row-1];
+        this.cursor.col=prev.length;
+        this.lines[this.cursor.row-1]=prev+this.lines[this.cursor.row];
+        this.lines.splice(this.cursor.row,1);
+        this.cursor.row--;
+      }
+      this._addKey('BS');this._notify();return;
+    }
+    if(key==='Tab'){
+      this.saveUndo();
+      const ln=this.lines[this.cursor.row];
+      this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+'  '+ln.slice(this.cursor.col);
+      this.cursor.col+=2;
+      this._addKey('Tab');this._notify();return;
+    }
+    if(key.length===1 && !e.ctrlKey && !e.metaKey){
+      this.saveUndo();
+      const ln=this.lines[this.cursor.row];
+      this.lines[this.cursor.row]=ln.slice(0,this.cursor.col)+key+ln.slice(this.cursor.col);
+      this.cursor.col++;
+      if(this.insertRecord)this.insertRecord.text+=key;
+      this._addKey(key);this._notify();
+    }
+  }
+
+  // ── VISUAL MODE ──
+  _visualKey(key, e) {
+    if(key==='Escape'){
+      this.mode='normal';this.visualStart=null;this.visualLineMode=false;
+      this._addKey('Esc');if(this.onModeChange)this.onModeChange('normal');this._notify();return;
+    }
+    switch(key) {
+      case 'h': this.cursor.col--;break;
+      case 'j': this.cursor.row++;break;
+      case 'k': this.cursor.row--;break;
+      case 'l': this.cursor.col++;break;
+      case 'w': this._moveWord(1);break;
+      case 'b': this._moveWord(-1);break;
+      case 'e': this._moveWordEnd();break;
+      case '$': this.cursor.col=this.lines[this.cursor.row].length-1;break;
+      case '0': this.cursor.col=0;break;
+      case 'G': this.cursor.row=this.lines.length-1;break;
+      case 'd': case 'x':
+        this.saveUndo();
+        if(this.visualLineMode) this._deleteVisualLines();
+        else this._deleteVisualChars();
+        this.mode='normal';this.visualStart=null;this.visualLineMode=false;
+        this._addKey('d');if(this.onModeChange)this.onModeChange('normal');break;
+      case 'y':
+        if(this.visualLineMode) this._yankVisualLines();
+        else this._yankVisualChars();
+        this.mode='normal';this.visualStart=null;this.visualLineMode=false;
+        this._addKey('y');if(this.onModeChange)this.onModeChange('normal');break;
+      case 'c':
+        this.saveUndo();
+        if(this.visualLineMode) {
+          this._deleteVisualLines();
+          this.lines.splice(this.cursor.row,0,'');
+        } else {
+          this._deleteVisualChars();
+        }
+        this.mode='insert';this.visualStart=null;this.visualLineMode=false;
+        this._addKey('c');if(this.onModeChange)this.onModeChange('insert');break;
+      case '>':
+        this.saveUndo();
+        {const range=this._getVisualRange();
+        const sr=Math.min(range.start.row,range.end.row);
+        const er=Math.max(range.start.row,range.end.row);
+        for(let r=sr;r<=er;r++) this.lines[r]='  '+this.lines[r];}
+        this.mode='normal';this.visualStart=null;this.visualLineMode=false;
+        this._addKey('>');if(this.onModeChange)this.onModeChange('normal');break;
+      case '<':
+        this.saveUndo();
+        {const range=this._getVisualRange();
+        const sr=Math.min(range.start.row,range.end.row);
+        const er=Math.max(range.start.row,range.end.row);
+        for(let r=sr;r<=er;r++) this.lines[r]=this.lines[r].replace(/^ {1,2}/,'');}
+        this.mode='normal';this.visualStart=null;this.visualLineMode=false;
+        this._addKey('<');if(this.onModeChange)this.onModeChange('normal');break;
+    }
+    this.clampCursor();
+    this._addKey(key);
+    this._notify();
+  }
+
+  _getVisualRange() {
+    let s={...this.visualStart}, e={...this.cursor};
+    if(s.row>e.row||(s.row===e.row&&s.col>e.col))[s,e]=[e,s];
+    return {start:s,end:e};
+  }
+
+  _deleteVisualChars() {
+    const {start,end}=this._getVisualRange();
+    if(start.row===end.row){
+      const ln=this.lines[start.row];
+      this.register=ln.slice(start.col,end.col+1);this.registerIsLine=false;
+      this.lines[start.row]=ln.slice(0,start.col)+ln.slice(end.col+1);
+    } else {
+      const first=this.lines[start.row].slice(0,start.col);
+      const last=this.lines[end.row].slice(end.col+1);
+      this.register='';this.registerIsLine=false;
+      this.lines.splice(start.row,end.row-start.row+1,first+last);
+    }
+    if(this.lines.length===0)this.lines=[''];
+    this.cursor={...start};this.clampCursor();
+  }
+
+  _deleteVisualLines() {
+    const {start,end}=this._getVisualRange();
+    const sr=start.row, er=end.row;
+    this.register=this.lines.slice(sr,er+1).join('\n');this.registerIsLine=true;
+    this.lines.splice(sr,er-sr+1);
+    if(this.lines.length===0)this.lines=[''];
+    this.cursor.row=Math.min(sr,this.lines.length-1);this.cursor.col=0;this.clampCursor();
+  }
+
+  _yankVisualChars() {
+    const {start,end}=this._getVisualRange();
+    if(start.row===end.row) this.register=this.lines[start.row].slice(start.col,end.col+1);
+    else {
+      let r='';
+      for(let i=start.row;i<=end.row;i++){
+        r+=(i>start.row?'\n':'')+this.lines[i].slice(i===start.row?start.col:0,i===end.row?end.col+1:undefined);
+      }
+      this.register=r;
+    }
+    this.registerIsLine=false;this.cursor={...start};
+  }
+
+  _yankVisualLines() {
+    const {start,end}=this._getVisualRange();
+    this.register=this.lines.slice(start.row,end.row+1).join('\n');this.registerIsLine=true;
+    this.cursor={...start};
+  }
+
+  // ── SEARCH ──
+  _searchKey(key, e) {
+    if(key==='Escape'){this.mode='normal';this.searchActive=false;this._addKey('Esc');if(this.onModeChange)this.onModeChange('normal');if(this.onSearch)this.onSearch(false,'');this._notify();return}
+    if(key==='Enter'){this.mode='normal';this.searchActive=false;if(this.searchQuery)this._searchNext(1);this._addKey('CR');if(this.onModeChange)this.onModeChange('normal');if(this.onSearch)this.onSearch(false,'');this._notify();return}
+    if(key==='Backspace'){this.searchQuery=this.searchQuery.slice(0,-1);if(this.onSearch)this.onSearch(true,this.searchQuery);return}
+    if(key.length===1&&!e.ctrlKey&&!e.metaKey){this.searchQuery+=key;if(this.onSearch)this.onSearch(true,this.searchQuery)}
+  }
+  _searchNext(dir) {
+    const q=this.searchQuery;if(!q)return;
+    const rows=this.lines.length;
+    for(let i=1;i<=rows;i++){
+      const r=(this.cursor.row+i*dir+rows)%rows;
+      const startCol=(r===this.cursor.row&&i===1)?this.cursor.col+1:0;
+      const idx=this.lines[r].indexOf(q,startCol);
+      if(idx!==-1){this.cursor.row=r;this.cursor.col=idx;return}
+    }
+    // Try from beginning of current line
+    const idx=this.lines[this.cursor.row].indexOf(q);
+    if(idx!==-1){this.cursor.col=idx}
+  }
+  _searchWordUnderCursor() {
+    const line=this.lines[this.cursor.row];
+    let s=this.cursor.col,e=this.cursor.col;
+    while(s>0&&/\w/.test(line[s-1]))s--;
+    while(e<line.length-1&&/\w/.test(line[e+1]))e++;
+    const word=line.slice(s,e+1);
+    if(word){this.searchQuery=word;this._searchNext(1)}
+  }
+
+  // ── MOVEMENT HELPERS ──
+  _moveWord(dir) {
+    const line=this.lines[this.cursor.row];
+    if(dir>0){
+      let c=this.cursor.col;
+      while(c<line.length&&!/\s/.test(line[c]))c++;
+      while(c<line.length&&/\s/.test(line[c]))c++;
+      if(c>=line.length&&this.cursor.row<this.lines.length-1){
+        this.cursor.row++;
+        const nl=this.lines[this.cursor.row];let nc=0;
+        while(nc<nl.length&&/\s/.test(nl[nc]))nc++;
+        this.cursor.col=nc;
+      } else this.cursor.col=Math.min(c,Math.max(0,line.length-1));
+    } else {
+      let c=this.cursor.col;
+      if(c===0&&this.cursor.row>0){this.cursor.row--;this.cursor.col=Math.max(0,this.lines[this.cursor.row].length-1);return}
+      c--;while(c>0&&/\s/.test(line[c]))c--;
+      while(c>0&&!/\s/.test(line[c-1]))c--;
+      this.cursor.col=Math.max(0,c);
+    }
+  }
+  _moveWORD(dir) {
+    const line=this.lines[this.cursor.row];
+    if(dir>0){
+      let c=this.cursor.col;
+      while(c<line.length&&!/\s/.test(line[c]))c++;
+      while(c<line.length&&/\s/.test(line[c]))c++;
+      if(c>=line.length&&this.cursor.row<this.lines.length-1){
+        this.cursor.row++;this.cursor.col=0;
+        const nl=this.lines[this.cursor.row];let nc=0;
+        while(nc<nl.length&&/\s/.test(nl[nc]))nc++;
+        this.cursor.col=nc;
+      } else this.cursor.col=Math.min(c,Math.max(0,line.length-1));
+    } else {
+      let c=this.cursor.col;
+      if(c===0&&this.cursor.row>0){this.cursor.row--;this.cursor.col=Math.max(0,this.lines[this.cursor.row].length-1);return}
+      c--;while(c>0&&/\s/.test(line[c]))c--;
+      while(c>0&&!/\s/.test(line[c-1]))c--;
+      this.cursor.col=Math.max(0,c);
+    }
+  }
+  _moveWordEnd() {
+    const line=this.lines[this.cursor.row];
+    let c=this.cursor.col+1;
+    while(c<line.length&&/\s/.test(line[c]))c++;
+    while(c<line.length-1&&!/\s/.test(line[c+1]))c++;
+    this.cursor.col=Math.min(c,Math.max(0,line.length-1));
+  }
+  _moveWORDEnd() { this._moveWordEnd(); } // simplified
+  _moveFirstNonBlank() {
+    const line=this.lines[this.cursor.row];
+    let c=0;while(c<line.length&&/\s/.test(line[c]))c++;
+    this.cursor.col=c;
+  }
+  _doFind(ch, dir, till) {
+    const line=this.lines[this.cursor.row];
+    if(dir>0){
+      for(let i=this.cursor.col+1;i<line.length;i++){
+        if(line[i]===ch){this.cursor.col=till?i-1:i;return}
+      }
+    } else {
+      for(let i=this.cursor.col-1;i>=0;i--){
+        if(line[i]===ch){this.cursor.col=till?i+1:i;return}
+      }
+    }
+  }
+  _matchBracket() {
+    const line=this.lines[this.cursor.row];
+    const ch=line[this.cursor.col];
+    const pairs={'(':')','[':']','{':'}',')':'(',']':'[','}':'{'};
+    if(!pairs[ch]) return;
+    const target=pairs[ch];
+    const forward='([{'.includes(ch);
+    let depth=0;
+    if(forward){
+      for(let r=this.cursor.row;r<this.lines.length;r++){
+        const l=this.lines[r];
+        const sc=r===this.cursor.row?this.cursor.col+1:0;
+        for(let c=sc;c<l.length;c++){
+          if(l[c]===ch)depth++;
+          if(l[c]===target){if(depth===0){this.cursor.row=r;this.cursor.col=c;return}depth--;}
+        }
+      }
+    } else {
+      for(let r=this.cursor.row;r>=0;r--){
+        const l=this.lines[r];
+        const sc=r===this.cursor.row?this.cursor.col-1:l.length-1;
+        for(let c=sc;c>=0;c--){
+          if(l[c]===ch)depth++;
+          if(l[c]===target){if(depth===0){this.cursor.row=r;this.cursor.col=c;return}depth--;}
+        }
+      }
+    }
+  }
+
+  _addKey(k){this.keyBuffer.push(k);if(this.keyBuffer.length>10)this.keyBuffer.shift()}
+  _notify(){if(this.onUpdate)this.onUpdate()}
+  getTextContent(){return this.lines.join('\n')}
+}
+
+// ===================== APP =====================
+class VimDojo {
+  constructor() {
+    this.vim = new VimEngine();
+    this.currentLesson = 0;
+    this.currentChallenge = 0;
+    this.completed = new Set(JSON.parse(localStorage.getItem('vd_done')||'[]'));
+    this.totalChallenges = LESSONS.reduce((s,l)=>s+l.challenges.length,0);
+
+    this.vim.onUpdate = ()=>this.render();
+    this.vim.onModeChange = (m)=>this.updateMode(m);
+    this.vim.onSearch = (a,q)=>this.updateSearch(a,q);
+
+    this.buildSidebar();
+    this.loadLesson(0,0);
+    this.bindEvents();
+    this.updateProgress();
+  }
+
+  _ckey(li,ci){return li+':'+ci}
+
+  buildSidebar() {
+    const list=document.getElementById('lessonList');
+    let html='';
+    LESSONS.forEach((l,i)=>{
+      if(l.phase) html+=`<div class="phase-label">${l.phase}</div>`;
+      const allDone = l.challenges.every((_,ci)=>this.completed.has(this._ckey(i,ci)));
+      html+=`<div class="lesson-item${i===0?' active':''}${allDone?' completed':''}" data-idx="${i}">
+        <div class="lesson-check">${allDone?'&#10003;':''}</div>
+        <span class="lesson-num">${String(i+1).padStart(2,'0')}</span>
+        <span>${l.title}</span></div>`;
+    });
+    list.innerHTML=html;
+    list.querySelectorAll('.lesson-item').forEach(el=>{
+      el.addEventListener('click',()=>{this.loadLesson(parseInt(el.dataset.idx),0);this.closeSidebar()});
+    });
+  }
+
+  loadLesson(li, ci) {
+    this.currentLesson=li;
+    this.currentChallenge=ci;
+    const lesson=LESSONS[li];
+    const ch=lesson.challenges[ci];
+    this.vim.loadText(ch.start.map(l=>l));
+
+    const content=document.getElementById('content');
+    const hasTabs = lesson.challenges.length>1;
+
+    let tabsHtml='';
+    if(hasTabs) {
+      tabsHtml='<div class="challenge-tabs">';
+      lesson.challenges.forEach((c,idx)=>{
+        const done=this.completed.has(this._ckey(li,idx));
+        tabsHtml+=`<div class="challenge-tab${idx===ci?' active':''}" data-ci="${idx}">${done?'&#10003; ':''}Challenge ${idx+1}</div>`;
+      });
+      tabsHtml+='</div>';
+    }
+
+    content.innerHTML=`
+      <h1 class="lesson-title">${lesson.title}</h1>
+      <p class="lesson-subtitle">${lesson.desc}</p>
+      ${lesson.commands.length?`<div class="cmd-grid">${lesson.commands.map(c=>`<div class="cmd-card"><kbd>${c.key}</kbd><span class="cmd-desc">${c.desc}</span></div>`).join('')}</div>`:''}
+      ${tabsHtml}
+      <div class="challenge${hasTabs?'':' solo-challenge'}" id="challenge">
+        <div class="challenge-header">
+          <div class="challenge-title">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM6.75 7.75a.75.75 0 000 1.5h.75v2h-.75a.75.75 0 000 1.5h3a.75.75 0 000-1.5H9V8.5a.75.75 0 00-.75-.75h-1.5z"/></svg>
+            Challenge ${ci+1} of ${lesson.challenges.length}
+          </div>
+          <div class="challenge-actions">
+            <div class="keystroke-counter">Keys: <span id="keyCount">0</span>${ch.par?' / par '+ch.par:''}</div>
+            <button class="btn" id="resetBtn">Reset</button>
+          </div>
+        </div>
+        <div class="goal-text"><span class="goal-icon">&#9654;</span><span>${ch.goal}</span></div>
+        <div class="goal-preview">
+          <div class="goal-preview-label">Expected Result</div>
+          <div class="goal-preview-content">${this._esc(ch.goalText.join('\n'))}</div>
+        </div>
+        <div class="editor-wrap" id="editorWrap" tabindex="0">
+          <div class="editor" id="editor">
+            <div class="line-numbers" id="lineNumbers"></div>
+            <div class="editor-content" id="editorContent"></div>
+          </div>
+          <div class="search-bar" id="searchBar"><span>/</span><input class="search-input" id="searchInput" readonly></div>
+          <div class="statusbar">
+            <div class="mode-indicator mode-normal" id="modeIndicator">normal</div>
+            <div class="statusbar-info">
+              <span id="cursorPos">Ln 1, Col 1</span>
+              <span id="bufInfo">1 lines</span>
+            </div>
+            <div class="keystroke-display" id="keystrokeDisplay"></div>
+          </div>
+          <div class="success-overlay" id="successOverlay">
+            <div class="success-icon">&#10003;</div>
+            <div class="success-text">Challenge Complete!</div>
+            <div class="success-sub" id="successSub">Well done, grasshopper.</div>
+            <div class="success-keys" id="successKeys"></div>
+            <div class="btn-row">
+              <button class="btn" id="retryChallengeBtn">Retry</button>
+              <button class="btn btn-primary" id="nextChallengeBtn">Next →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hint">Press <kbd>?</kbd> for cheat sheet &middot; Click editor to focus</div>
+      <div class="nav-bar">
+        <button class="btn" ${li===0&&ci===0?'disabled style="opacity:.3"':''} id="prevNav">← Previous</button>
+        <button class="btn" id="nextNav">Next →</button>
+      </div>`;
+
+    // Bind
+    document.getElementById('resetBtn').onclick=()=>{
+      this.vim.loadText(ch.start.map(l=>l));
+      document.getElementById('successOverlay').classList.remove('visible');
+      this.render();this.updateMode('normal');
+    };
+    document.getElementById('nextChallengeBtn').onclick=()=>this._goNext();
+    document.getElementById('retryChallengeBtn').onclick=()=>{
+      this.vim.loadText(ch.start.map(l=>l));
+      document.getElementById('successOverlay').classList.remove('visible');
+      this.render();this.updateMode('normal');
+    };
+    document.getElementById('prevNav').onclick=()=>this._goPrev();
+    document.getElementById('nextNav').onclick=()=>this._goNext();
+
+    if(hasTabs) {
+      content.querySelectorAll('.challenge-tab').forEach(el=>{
+        el.addEventListener('click',()=>this.loadLesson(li,parseInt(el.dataset.ci)));
+      });
+    }
+
+    const ew=document.getElementById('editorWrap');
+    ew.addEventListener('click',(e)=>{e.stopPropagation();});
+
+    document.querySelectorAll('.lesson-item').forEach((el,i)=>el.classList.toggle('active',i===li));
+    document.getElementById('topbarTitle').textContent=lesson.title;
+
+    this.render();this.updateMode('normal');
+  }
+
+  _goNext() {
+    const lesson=LESSONS[this.currentLesson];
+    if(this.currentChallenge<lesson.challenges.length-1) {
+      this.loadLesson(this.currentLesson, this.currentChallenge+1);
+    } else if(this.currentLesson<LESSONS.length-1) {
+      this.loadLesson(this.currentLesson+1, 0);
+    }
+  }
+  _goPrev() {
+    if(this.currentChallenge>0) {
+      this.loadLesson(this.currentLesson, this.currentChallenge-1);
+    } else if(this.currentLesson>0) {
+      const prevLesson=LESSONS[this.currentLesson-1];
+      this.loadLesson(this.currentLesson-1, prevLesson.challenges.length-1);
+    }
+  }
+
+  render() {
+    const {lines,cursor,mode,visualStart,visualLineMode}=this.vim;
+    const ec=document.getElementById('editorContent');
+    const ln=document.getElementById('lineNumbers');
+    if(!ec)return;
+    const selRange=(mode==='visual')?this.vim._getVisualRange():null;
+    let html='',lnH='';
+    for(let r=0;r<lines.length;r++){
+      const line=lines[r];
+      lnH+=`<div class="${r===cursor.row?'active-ln':''}">${r+1}</div>`;
+      let lH='';const len=Math.max(line.length,1);
+      for(let c=0;c<len;c++){
+        const ch=c<line.length?this._esc(line[c]):' ';
+        let cls='';
+        if(r===cursor.row&&c===cursor.col) cls+=mode==='insert'?' cursor-line':' cursor-block';
+        if(selRange){
+          const{start,end}=selRange;
+          let inSel=false;
+          if(visualLineMode){inSel=r>=Math.min(start.row,end.row)&&r<=Math.max(start.row,end.row)}
+          else if(start.row===end.row&&r===start.row){inSel=c>=start.col&&c<=end.col}
+          else if(r===start.row){inSel=c>=start.col}
+          else if(r===end.row){inSel=c<=end.col}
+          else if(r>start.row&&r<end.row){inSel=true}
+          if(inSel) cls+=' visual-sel';
+        }
+        lH+=cls?`<span class="${cls.trim()}">${ch}</span>`:ch;
+      }
+      if(line.length===0&&r===cursor.row) lH=`<span class="${mode==='insert'?'cursor-line':'cursor-block'}"> </span>`;
+      html+=`<div class="editor-line">${lH}</div>`;
+    }
+    ec.innerHTML=html;ln.innerHTML=lnH;
+    const cp=document.getElementById('cursorPos');if(cp)cp.textContent=`Ln ${cursor.row+1}, Col ${cursor.col+1}`;
+    const bi=document.getElementById('bufInfo');if(bi)bi.textContent=`${lines.length} line${lines.length!==1?'s':''}`;
+    const kd=document.getElementById('keystrokeDisplay');if(kd)kd.textContent=this.vim.keyBuffer.slice(-6).join(' ');
+    const kc=document.getElementById('keyCount');if(kc)kc.textContent=this.vim.keystrokeCount;
+    this.checkChallenge();
+  }
+
+  checkChallenge() {
+    const lesson=LESSONS[this.currentLesson];
+    const ch=lesson.challenges[this.currentChallenge];
+    const cur=this.vim.lines;
+    if(cur.length===ch.goalText.length&&cur.every((l,i)=>l===ch.goalText[i])){
+      if(this.vim.mode==='normal'||this.vim.mode==='insert'){
+        const ov=document.getElementById('successOverlay');
+        if(ov&&!ov.classList.contains('visible')){
+          ov.classList.add('visible');
+          const keys=this.vim.keystrokeCount;
+          const par=ch.par||0;
+          const sub=document.getElementById('successSub');
+          const sk=document.getElementById('successKeys');
+          if(par&&keys<=par){sub.textContent='Under par! Excellent!';sk.textContent=`${keys} keystrokes (par: ${par})`}
+          else if(par){sub.textContent='Good job! Can you beat par next time?';sk.textContent=`${keys} keystrokes (par: ${par})`}
+          else{sub.textContent='Well done!';sk.textContent=`${keys} keystrokes`}
+          this._markComplete(this.currentLesson,this.currentChallenge);
+          this.spawnConfetti();
+        }
+      }
+    }
+  }
+
+  _markComplete(li,ci) {
+    this.completed.add(this._ckey(li,ci));
+    localStorage.setItem('vd_done',JSON.stringify([...this.completed]));
+    this.buildSidebar();
+    this.updateProgress();
+    document.querySelectorAll('.lesson-item').forEach((el,i)=>el.classList.toggle('active',i===this.currentLesson));
+    // Update tabs if visible
+    document.querySelectorAll('.challenge-tab').forEach(el=>{
+      const idx=parseInt(el.dataset.ci);
+      const done=this.completed.has(this._ckey(li,idx));
+      if(done&&!el.innerHTML.includes('✓')) el.innerHTML='&#10003; Challenge '+(idx+1);
+    });
+  }
+
+  updateProgress() {
+    const done=this.completed.size;
+    const pct=(done/this.totalChallenges)*100;
+    document.getElementById('progressFill').style.width=pct+'%';
+    document.getElementById('progressText').textContent=`${done} / ${this.totalChallenges} challenges`;
+  }
+
+  updateMode(mode) {
+    const mi=document.getElementById('modeIndicator');if(!mi)return;
+    const modeLabel=mode==='visualline'?'visual line':mode;
+    mi.className='mode-indicator mode-'+(mode==='visualline'?'visual':mode);
+    mi.textContent=modeLabel;
+  }
+
+  updateSearch(active,query) {
+    const bar=document.getElementById('searchBar');
+    const inp=document.getElementById('searchInput');
+    if(bar)bar.classList.toggle('visible',active);
+    if(inp)inp.value=query;
+  }
+
+  bindEvents() {
+    document.addEventListener('keydown',(e)=>{
+      // Close modal on Escape
+      if(e.key==='Escape'){
+        const modal=document.getElementById('cheatModal');
+        if(modal.classList.contains('visible')){modal.classList.remove('visible');return}
+      }
+      // Don't capture keys when modal is open
+      if(document.getElementById('cheatModal').classList.contains('visible')) return;
+      // Don't capture keys when focus is on a real input/button
+      const tag=document.activeElement&&document.activeElement.tagName;
+      if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+      // Cheat sheet
+      if(this.vim.mode==='normal'&&e.key==='?'&&!this.vim.pendingOp&&!this.vim.pendingKey){
+        this.toggleCheatSheet();e.preventDefault();return;
+      }
+      // Handle Ctrl-r for redo
+      if(this.vim.mode==='normal'&&e.key==='r'&&e.ctrlKey){
+        e.preventDefault();return;
+      }
+      // Enter advances to next challenge when success overlay is showing
+      if(e.key==='Enter'&&document.getElementById('successOverlay').classList.contains('visible')){
+        e.preventDefault();this._goNext();return;
+      }
+      const passThrough=['F5','F11','F12'];
+      if(!passThrough.includes(e.key)&&!(e.ctrlKey||e.metaKey)){e.preventDefault()}
+      this.vim.handleKey(e.key,e);
+    });
+    document.getElementById('hamburger').addEventListener('click',()=>this.toggleSidebar());
+    document.getElementById('overlay').addEventListener('click',()=>this.closeSidebar());
+    document.getElementById('cheatClose').addEventListener('click',()=>document.getElementById('cheatModal').classList.remove('visible'));
+  }
+
+  toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('visible')}
+  closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('visible')}
+  toggleCheatSheet(){document.getElementById('cheatModal').classList.toggle('visible')}
+
+  spawnConfetti() {
+    const c=document.getElementById('confetti');
+    const colors=['#9ece6a','#7aa2f7','#bb9af7','#f7768e','#ff9e64','#7dcfff','#e0af68'];
+    for(let i=0;i<50;i++){
+      const p=document.createElement('div');p.className='confetti-piece';
+      p.style.left=Math.random()*100+'vw';p.style.top='-10px';
+      p.style.background=colors[Math.floor(Math.random()*colors.length)];
+      p.style.width=(4+Math.random()*8)+'px';p.style.height=(4+Math.random()*8)+'px';
+      p.style.borderRadius=Math.random()>.5?'50%':'2px';
+      p.style.animationDuration=(1.5+Math.random()*2)+'s';
+      p.style.animationDelay=(Math.random()*.5)+'s';
+      c.appendChild(p);
+    }
+    setTimeout(()=>{c.innerHTML=''},3500);
+  }
+
+  _esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+}
+
+document.addEventListener('DOMContentLoaded',()=>new VimDojo());
+</script>
+</body>
+</html>
